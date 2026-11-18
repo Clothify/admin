@@ -28,10 +28,15 @@ export default function MerchantProfileModal({
   if (!open || !merchant) return null;
 
   const isSuspended = merchant.status === "suspended";
-  const displayName = (merchant as any).businessName || (merchant as any).fullName || "—";
-  const tier = (merchant as any).serviceTier || (merchant as any).vehicle || "—";
-  const activity = (merchant as any).orders || (merchant as any).deliveries || {};
-  const joinedOn = formatDate((merchant as any).raw?.createdAt || (merchant as any).createdAt);
+  const displayName =
+    (merchant as any).businessName || (merchant as any).fullName || "—";
+  const tier =
+    (merchant as any).serviceTier || (merchant as any).vehicle || "—";
+  const activity =
+    (merchant as any).orders || (merchant as any).deliveries || {};
+  const joinedOn = formatDate(
+    (merchant as any).raw?.createdAt || (merchant as any).createdAt,
+  );
   const Tab = ({ active, label }: { active: boolean; label: string }) => (
     <button
       className={`relative pb-2 text-sm ${
@@ -88,10 +93,10 @@ export default function MerchantProfileModal({
         {/* Two-column summary */}
         <div className="mt-6 grid grid-cols-2 gap-4 text-[14px]">
           <div>
-            <div className="font-medium text-gray-900">
-              {displayName}
+            <div className="font-medium text-gray-900">{displayName}</div>
+            <div className="text-gray-500">
+              {merchant.address || merchant.city || "—"}
             </div>
-            <div className="text-gray-500">{merchant.address || merchant.city || "—"}</div>
           </div>
           <div className="text-right">
             <div className="text-gray-900">{tier}</div>
@@ -123,16 +128,58 @@ export default function MerchantProfileModal({
         {/* Sections */}
         <div className="mt-6 space-y-3">
           <Section i={3} title="About, services and reviews">
-            <div className="text-sm leading-6 text-gray-600">{(merchant as any).raw?.description || "No business description supplied."}</div>
-            <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Published service prices</div>
-            <div className="mt-2 space-y-2">
-              {((merchant as any).raw?.prices || []).map((price: any) => <div key={price.id} className="flex items-center justify-between gap-4 rounded-lg bg-gray-50 px-3 py-2 text-sm"><span>{price.clothType?.displayName || "Clothes"} · {String(price.serviceType || "").replaceAll("_", " ")}</span><span className="font-semibold text-gray-900">{formatNaira(price.pricePerUnit)}</span></div>)}
-              {!((merchant as any).raw?.prices || []).length && <div className="text-sm text-amber-700">The merchant has not published a price list.</div>}
+            <div className="text-sm leading-6 text-gray-600">
+              {(merchant as any).raw?.description ||
+                "No business description supplied."}
             </div>
-            <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">Recent reviews</div>
+            <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Published service prices
+            </div>
             <div className="mt-2 space-y-2">
-              {((merchant as any).raw?.reviews || []).map((review: any) => <div key={review.id} className="rounded-lg border border-gray-100 p-3 text-sm"><div className="font-medium text-gray-900">{review.user?.fullName || "Customer"} · {review.rating}/5</div><div className="mt-1 text-gray-600">{review.comment || "No written comment."}</div></div>)}
-              {!((merchant as any).raw?.reviews || []).length && <div className="text-sm text-gray-500">No customer reviews yet.</div>}
+              {((merchant as any).raw?.prices || []).map((price: any) => (
+                <div
+                  key={price.id}
+                  className="flex items-center justify-between gap-4 rounded-lg bg-gray-50 px-3 py-2 text-sm"
+                >
+                  <span>
+                    {price.clothType?.displayName || "Clothes"} ·{" "}
+                    {price.variant === "WHITE" ? "White" : "Regular"} ·{" "}
+                    {String(price.serviceType || "").replaceAll("_", " ")} · per{" "}
+                    {price.serviceType === "SHOE_CLEANING" ? "pair" : "item"}
+                  </span>
+                  <span className="font-semibold text-gray-900">
+                    {formatNaira(price.pricePerUnit)}
+                  </span>
+                </div>
+              ))}
+              {!((merchant as any).raw?.prices || []).length && (
+                <div className="text-sm text-amber-700">
+                  The merchant has not published a price list.
+                </div>
+              )}
+            </div>
+            <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Recent reviews
+            </div>
+            <div className="mt-2 space-y-2">
+              {((merchant as any).raw?.reviews || []).map((review: any) => (
+                <div
+                  key={review.id}
+                  className="rounded-lg border border-gray-100 p-3 text-sm"
+                >
+                  <div className="font-medium text-gray-900">
+                    {review.user?.fullName || "Customer"} · {review.rating}/5
+                  </div>
+                  <div className="mt-1 text-gray-600">
+                    {review.comment || "No written comment."}
+                  </div>
+                </div>
+              ))}
+              {!((merchant as any).raw?.reviews || []).length && (
+                <div className="text-sm text-gray-500">
+                  No customer reviews yet.
+                </div>
+              )}
             </div>
           </Section>
           <Section i={0} title="Earnings Details">
@@ -176,11 +223,20 @@ export default function MerchantProfileModal({
 
             <div className="grid grid-cols-2 gap-3">
               {[
-                ["Today's Earnings", formatNaira((merchant as any).earnings?.today)],
-                ["This week Earnings", formatNaira((merchant as any).earnings?.thisWeek)],
+                [
+                  "Today's Earnings",
+                  formatNaira((merchant as any).earnings?.today),
+                ],
+                [
+                  "This week Earnings",
+                  formatNaira((merchant as any).earnings?.thisWeek),
+                ],
                 ["Today's order", String(activity?.today ?? 0)],
                 ["This week orders", String(activity?.thisWeek ?? 0)],
-                ["Total earnings for this month", formatNaira((merchant as any).earnings?.thisMonth)],
+                [
+                  "Total earnings for this month",
+                  formatNaira((merchant as any).earnings?.thisMonth),
+                ],
               ].map(([k, v]) => (
                 <div
                   key={k}
@@ -206,7 +262,7 @@ export default function MerchantProfileModal({
                   This week withdrawal
                 </div>
                 <div className="mt-1 text-[18px] font-semibold text-gray-900">
-{formatNaira((merchant as any).withdrawals?.thisWeek)}
+                  {formatNaira((merchant as any).withdrawals?.thisWeek)}
                 </div>
               </div>
               <div className="rounded-lg border border-gray-200 px-3 py-3">
@@ -214,7 +270,7 @@ export default function MerchantProfileModal({
                   Withdrawal for this month
                 </div>
                 <div className="mt-1 text-[18px] font-semibold text-gray-900">
-{formatNaira((merchant as any).withdrawals?.thisMonth)}
+                  {formatNaira((merchant as any).withdrawals?.thisMonth)}
                 </div>
               </div>
             </div>
@@ -228,7 +284,11 @@ export default function MerchantProfileModal({
               <div className="mt-3 flex justify-center">
                 {(merchant.documents || [])[0]?.url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={(merchant.documents || [])[0].url} alt={(merchant.documents || [])[0].type || "Document"} className="h-[118px] w-[210px] rounded-lg object-cover bg-gray-200" />
+                  <img
+                    src={(merchant.documents || [])[0].url}
+                    alt={(merchant.documents || [])[0].type || "Document"}
+                    className="h-[118px] w-[210px] rounded-lg object-cover bg-gray-200"
+                  />
                 ) : (
                   <div className="h-[118px] w-[210px] rounded-lg bg-gray-200 grid place-items-center text-gray-600 text-sm">
                     No file
@@ -241,14 +301,29 @@ export default function MerchantProfileModal({
                 Store Images
               </div>
               <div className="mt-3 grid grid-cols-5 gap-2">
-                {((merchant.documents || []).slice(1, 6).length ? (merchant.documents || []).slice(1, 6) : Array.from({ length: 5 }).map((_, i) => ({ id: `empty-${i}`, url: "" } as any))).map((doc: any, i: number) => (
+                {((merchant.documents || []).slice(1, 6).length
+                  ? (merchant.documents || []).slice(1, 6)
+                  : Array.from({ length: 5 }).map(
+                      (_, i) => ({ id: `empty-${i}`, url: "" }) as any,
+                    )
+                ).map((doc: any, i: number) =>
                   doc.url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={doc.id || i} src={doc.url} alt={doc.type || "Document"} className="h-[68px] rounded-lg bg-gray-200 object-cover" />
+                    <img
+                      key={doc.id || i}
+                      src={doc.url}
+                      alt={doc.type || "Document"}
+                      className="h-[68px] rounded-lg bg-gray-200 object-cover"
+                    />
                   ) : (
-                    <div key={doc.id || i} className="h-[68px] rounded-lg bg-gray-200 grid place-items-center text-gray-600 text-xs">No file</div>
-                  )
-                ))}
+                    <div
+                      key={doc.id || i}
+                      className="h-[68px] rounded-lg bg-gray-200 grid place-items-center text-gray-600 text-xs"
+                    >
+                      No file
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           </Section>
