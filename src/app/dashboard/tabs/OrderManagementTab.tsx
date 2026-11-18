@@ -118,6 +118,7 @@ function OrderModal({ order, loading, canManage, canCancel, onClose, onChanged }
         {returnOrder && <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4"><p className="flex items-center gap-2 font-semibold text-amber-950"><RotateCcw className="h-4 w-4" />Cancellation return</p><p className="mt-1 text-sm text-amber-800">Custody: {humanize(raw.custody)} · Return logistics: ₦{Number(raw.cancellationBreakdown?.total || raw.cancellationFee || 0).toLocaleString()}</p></div>}
 
         <section className="mt-6"><h3 className="font-semibold text-gray-950">Rider assignments</h3><p className="text-sm text-gray-500">Pickup and delivery riders are separated, with their acceptance state and phone number.</p>{order.riderAssignments.length ? <div className="mt-3 grid gap-3 sm:grid-cols-2">{order.riderAssignments.map((assignment) => <Rider key={assignment.id} assignment={assignment} />)}</div> : <p className="mt-3 rounded-xl border border-dashed p-5 text-sm text-gray-500">No rider has been offered or assigned. Use the Rider Dispatch workspace to assign one manually.</p>}</section>
+        {raw.pickupInventory && <PickupAudit inventory={raw.pickupInventory} />}
         <section className="mt-7"><h3 className="font-semibold text-gray-950">Order journey</h3><p className="text-sm text-gray-500">Completed, current and upcoming stages of the full order flow.</p><Journey status={status} /></section>
         <section className="mt-7"><h3 className="font-semibold text-gray-950">Activity log</h3>{order.timeline?.length ? <ol className="mt-3 space-y-3 border-l-2 pl-5">{order.timeline.map((event, index) => <li key={`${event.date}-${index}`} className="relative"><span className="absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full bg-indigo-500 ring-4 ring-white" /><p className="text-sm font-semibold">{humanize(event.title)}</p>{event.body && <p className="text-sm text-gray-600">{event.body}</p>}<p className="mt-1 text-xs text-gray-400">{event.date}</p></li>)}</ol> : <p className="mt-3 rounded-lg bg-gray-50 p-4 text-sm text-gray-500">No activity events have been recorded yet.</p>}</section>
         <section className="mt-7 grid gap-3 sm:grid-cols-3"><Money label="Merchant amount" value={order.merchantRate} /><Money label="Delivery amount" value={order.deliveryRate} /><div className="rounded-xl border p-4"><p className="text-xs font-semibold uppercase text-gray-500">Transaction reference</p><p className="mt-2 break-all text-sm font-semibold">{order.transactionId || "—"}</p></div></section>
@@ -126,6 +127,42 @@ function OrderModal({ order, loading, canManage, canCancel, onClose, onChanged }
       </div>
     </div>
   </div>;
+}
+
+type AuditedItem = { clothType: string; variant: string; quantity: number };
+
+function PickupAudit({ inventory }: { inventory: {
+  state: string;
+  booked: AuditedItem[];
+  items: AuditedItem[];
+  note?: string;
+  disputeReason?: string;
+} }) {
+  return (
+    <section className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold text-slate-950">Pickup inventory</h3>
+        <Status status={inventory.state} />
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {[{ label: "Customer booking", items: inventory.booked }, { label: "Rider count", items: inventory.items }].map((group) => (
+          <div key={group.label} className="rounded-lg border bg-white p-3">
+            <p className="text-sm font-semibold text-slate-950">{group.label}</p>
+            <ul className="mt-2 space-y-1 text-sm text-slate-700">
+              {group.items.map((item) => (
+                <li key={`${item.clothType}:${item.variant}`} className="flex justify-between gap-2">
+                  <span>{item.clothType} · {humanize(item.variant)}</span>
+                  <span>{item.quantity}{item.clothType.toLowerCase() === "shoes" ? (item.quantity === 1 ? " pair" : " pairs") : ""}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      {inventory.note && <p className="mt-3 text-sm text-slate-700">Rider note: {inventory.note}</p>}
+      {inventory.disputeReason && <p className="mt-2 text-sm text-amber-800">Customer dispute: {inventory.disputeReason}</p>}
+    </section>
+  );
 }
 
 function Status({ status }: { status: string }) { return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${status === "COMPLETED" ? "bg-emerald-100 text-emerald-800" : status === "CANCELLED" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-800"}`}>{humanize(status)}</span>; }

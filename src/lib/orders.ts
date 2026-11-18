@@ -93,8 +93,8 @@ export function mapBackendOrder(order: any): UiOrder {
     riderAssignments: assignments,
     status: mapStatus(order.status),
     timeline: (order.timeline || []).map((event: any) => ({
-      title: String(event.type || "Update").replace(/_/g, " "),
-      body: event.data?.note || event.data?.message || event.data?.body || (event.data?.from && event.data?.to ? `${String(event.data.from).replaceAll("_", " ")} → ${String(event.data.to).replaceAll("_", " ")}` : undefined),
+      title: String(event.type === "STATUS_CHANGED" ? event.data?.action || event.type : event.type || "Update").replace(/_/g, " "),
+      body: event.data?.note || event.data?.reason || event.data?.message || event.data?.body || (event.data?.from && event.data?.to ? `${String(event.data.from).replaceAll("_", " ")} → ${String(event.data.to).replaceAll("_", " ")}` : undefined),
       date: `${formatDate(event.createdAt)} ${formatTime(event.createdAt)}`,
     })),
     raw: order,
