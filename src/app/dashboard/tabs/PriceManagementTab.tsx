@@ -42,7 +42,7 @@ const stripPercent = (v: string) => Number(String(v).replace(/[^\d.]/g, "")) || 
 
 const UsersTab = () => {
   const [fees, setFees] = React.useState<SpeedFee[]>([
-    { deliveryType: "SUPER_EXPRESS", percentage: 0, maxDurationMinutes: 300, isActive: true },
+    { deliveryType: "SUPER_EXPRESS", percentage: 0, maxDurationMinutes: 360, isActive: true },
     { deliveryType: "EXPRESS", percentage: 0, maxDurationMinutes: 2880, isActive: true },
   ]);
   const [saving, setSaving] = React.useState(false);
@@ -83,7 +83,7 @@ const UsersTab = () => {
         ? `${hours} hours (${hours / 24} ${hours / 24 === 1 ? "day" : "days"})`
         : `${hours} ${hours === 1 ? "hour" : "hours"}`;
       return <div key={fee.deliveryType} className="rounded-lg border border-gray-200 p-5">
-        <div className="flex items-start justify-between gap-4"><div><div className="font-semibold text-gray-900">{fee.deliveryType === "SUPER_EXPRESS" ? "Super Express" : "Express"}</div><div className="mt-1 text-xs leading-5 text-gray-500">{fee.deliveryType === "SUPER_EXPRESS" ? "Default promise: clothes ready within 5 hours after successful payment." : "Default promise: clothes ready within 48 hours (2 days) after successful payment."} This can be changed below and does not include rider travel time.</div></div><Toggle checked={fee.isActive} onChange={(isActive) => updateFee(fee.deliveryType, { isActive })} /></div>
+        <div className="flex items-start justify-between gap-4"><div><div className="font-semibold text-gray-900">{fee.deliveryType === "SUPER_EXPRESS" ? "Super Express" : "Express"}</div><div className="mt-1 text-xs leading-5 text-gray-500">{fee.deliveryType === "SUPER_EXPRESS" ? "Default promise: clothes ready within 6 hours after successful payment." : "Default promise: clothes ready within 48 hours (2 days) after successful payment."} This can be changed below and does not include rider travel time.</div></div><Toggle checked={fee.isActive} onChange={(isActive) => updateFee(fee.deliveryType, { isActive })} /></div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="text-xs text-gray-600">Speed fee percentage<input type="number" min="0" max="100" step="0.1" value={fee.percentage} onChange={(e) => updateFee(fee.deliveryType, { percentage: Number(e.target.value) })} className="mt-1 h-11 w-full rounded-md border border-gray-300 px-3 text-sm" /></label>
           <label className="text-xs text-gray-600">Maximum time to mark clothes ready (hours)<input type="number" min="0.0167" step="0.5" value={hours} onChange={(e) => updateFee(fee.deliveryType, { maxDurationMinutes: Math.max(1, Math.round(Number(e.target.value) * 60)) })} className="mt-1 h-11 w-full rounded-md border border-gray-300 px-3 text-sm" /><span className="mt-1 block leading-5 text-gray-500">Current promise: the merchant must mark the clothes ready within {durationText} after successful payment.</span></label>
