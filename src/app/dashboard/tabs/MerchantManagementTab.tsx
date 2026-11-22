@@ -16,6 +16,7 @@ import UserFilterPopover from "@/components/dashboard/filters/UserFilterPopover"
 import MerchantBulkActions from "@/components/dashboard/toolbar/MerchantBulkActions";
 import MerchantRowMenu from "@/components/dashboard/menus/MerchantRowMenu";
 import MerchantProfileModal from "@/components/dashboard/modals/MerchantProfileModal";
+import MerchantProfileUpdatesPanel from "@/components/dashboard/MerchantProfileUpdatesPanel";
 import MerchantDocumentsModal from "@/components/dashboard/modals/MerchantDocumentsModal";
 import ConfirmMerchantActionModal from "@/components/dashboard/modals/ConfirmMerchantActionModal";
 import { TableLoadingState } from "@/components/dashboard/ui/LoadingState";
@@ -76,6 +77,7 @@ const Tabs = ({
 
 /* ------------------------------- Main Screen ------------------------------ */
 export default function MerchantManagementTab() {
+  const [updatesOpen, setUpdatesOpen] = React.useState(false);
   /* ---------- query state ---------- */
   const [tab, setTab] = React.useState<MerchantStatus>("verified");
   const [search, setSearch] = React.useState("");
@@ -223,6 +225,13 @@ export default function MerchantManagementTab() {
   /* =============================== RENDER =============================== */
   return (
     <div className="bg-transparent">
+      <div className="mb-4 flex justify-end">
+        <button type="button" onClick={() => setUpdatesOpen(value => !value)}
+          className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-[#071D59] hover:bg-gray-50">
+          {updatesOpen ? "Hide profile updates" : "Profile updates"}
+        </button>
+      </div>
+      {updatesOpen && <MerchantProfileUpdatesPanel />}
       {/* Tabs header */}
       <div className="mb-4">
         <Tabs active={tab} onChange={(t) => setTab(t)} counts={counts} />
