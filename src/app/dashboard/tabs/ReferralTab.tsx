@@ -107,7 +107,7 @@ function EditRewardModal({
         </div>
 
         <div className="mt-6 space-y-4">
-          <div className="rounded-lg bg-indigo-50 px-4 py-3 text-gray-900">
+          <div className="rounded-lg bg-slate-50 px-4 py-3 text-gray-900">
             <span className="text-sm">Current Reward </span>
             <span className="font-semibold">{naira2(current)}</span>
           </div>
@@ -118,7 +118,7 @@ function EditRewardModal({
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="Input new reward amount"
-              className="w-full h-11 rounded-lg border border-gray-300 px-3 outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full h-11 rounded-lg border border-gray-300 px-3 outline-none focus:ring-2 focus:ring-slate-400"
             />
           </div>
         </div>
@@ -274,7 +274,7 @@ export function ReferralHeader({
       {/* Reward tile row (left) */}
       <div className="flex justify-between">
         <div className="w-[240px]">
-          <div className="rounded-xl bg-[#DDE6FF] p-4 ring-1 ring-[#3E5798]">
+          <div className="rounded-xl border border-[#E7E9EE] bg-[#F7F8FA] p-4">
             <div className="text-sm text-gray-800">Referral reward</div>
             <div className="mt-1 flex items-center justify-between">
               <div className="text-[22px] font-semibold text-gray-900">{naira2(reward)}</div>
@@ -282,7 +282,7 @@ export function ReferralHeader({
                 type="button"
                 aria-label="Edit referral reward"
                 onClick={onOpenEdit}
-                className="grid h-9 w-9 place-items-center rounded-md bg-indigo-200 text-indigo-900"
+                className="grid h-9 w-9 place-items-center rounded-md bg-slate-200 text-slate-800"
               >
                 <Pencil className="h-4 w-4" />
               </button>

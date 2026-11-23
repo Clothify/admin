@@ -1,49 +1,21 @@
 "use client";
-import * as React from "react";
-import { TrendingDown, TrendingUp } from "lucide-react";
-import { StatCardProps } from "@/types/dashboard";
 
-export default function StatCard({
-  icon,
-  title,
-  total,
-  active,
-  activePercentage,
-  inactive,
-  inactivePercentage,
-  isPositive,
-}: StatCardProps) {
+import * as React from "react";
+import type { StatCardProps } from "@/types/dashboard";
+
+export default function StatCard({ icon, title, total, detail }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div className="flex items-center justify-between mb-3">
-        <div className="p-2 rounded-lg bg-emerald-50">{icon}</div>
+    <article className="flex min-w-0 items-start justify-between gap-3 rounded-xl border border-[#E7E9EE] bg-white px-5 py-5">
+      <div className="min-w-0">
+        <h3 className="text-[13px] font-medium text-[#667085]">{title}</h3>
+        <p className="mt-2 text-[25px] font-semibold leading-tight tracking-[-0.04em] text-[#172033]">
+          {total}
+        </p>
+        {detail && <p className="mt-2 text-[12px] text-[#98A1AE]">{detail}</p>}
       </div>
-      <h3 className="text-[13px] font-medium text-gray-600">{title}</h3>
-      <div className="mt-1 mb-2 text-[22px] leading-[26px] font-bold text-gray-900">
-        {total}
-      </div>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-[13px]">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-900 font-medium">{active}</span>
-            {activePercentage && <span className={`inline-flex items-center ${isPositive ? "text-emerald-600" : "text-red-600"}`}>
-              {isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-              {activePercentage}
-            </span>}
-          </div>
-          <span className="text-gray-500">Active</span>
-        </div>
-        <div className="flex items-center justify-between text-[13px]">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-900 font-medium">{inactive}</span>
-            {inactivePercentage && <span className={`inline-flex items-center ${isPositive ? "text-emerald-600" : "text-red-600"}`}>
-              {isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-              {inactivePercentage}
-            </span>}
-          </div>
-          <span className="text-gray-500">Inactive</span>
-        </div>
-      </div>
-    </div>
+      <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#F3F5F7] text-[#64748B]">
+        {icon}
+      </span>
+    </article>
   );
 }

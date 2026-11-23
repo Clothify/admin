@@ -1,4 +1,5 @@
 "use client";
+
 import * as React from "react";
 
 export default function UserTabs({
@@ -8,45 +9,33 @@ export default function UserTabs({
 }: {
   active: "all" | "new";
   counts: { all: number; new: number };
-  onChange: (t: "all" | "new") => void;
+  onChange: (tab: "all" | "new") => void;
 }) {
-  const Tab = ({
-    id,
-    label,
-    count,
-  }: {
-    id: "all" | "new";
-    label: string;
-    count?: number;
-  }) => {
-    const isActive = active === id;
-    return (
-      <button
-        type="button"
-        onClick={() => onChange(id)}
-        role="tab"
-        aria-selected={isActive}
-        className={`relative px-2 py-2 text-sm font-medium ${
-          isActive ? "text-gray-900" : "text-gray-500 hover:text-gray-700"
-        }`}
-      >
-        <span>{label}</span>
-        {typeof count === "number" && (
-          <span className="ml-1 text-gray-400">({count})</span>
-        )}
-        {/* underline */}
-        <span
-          className={`absolute left-0 -bottom-[2px] h-[2px] w-full rounded bg-blue-600 transition
-            ${isActive ? "opacity-100" : "opacity-0"}`}
-        />
-      </button>
-    );
-  };
-
   return (
-    <div className="flex items-center gap-6 overflow-x-auto border-b border-gray-200" role="tablist" aria-label="User status">
-      <Tab id="all" label="All users list" count={counts.all} />
-      <Tab id="new" label="New User" count={counts.new} />
+    <div className="flex gap-6 overflow-x-auto border-b border-[#E7E9EE]" role="tablist" aria-label="User status">
+      {[
+        { id: "all" as const, label: "All users", count: counts.all },
+        { id: "new" as const, label: "New users", count: counts.new },
+      ].map((item) => {
+        const selected = active === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            onClick={() => onChange(item.id)}
+            className={
+              "relative shrink-0 px-1 py-3 text-[13px] font-medium transition-colors " +
+              (selected ? "text-[#172033]" : "text-[#8993A2] hover:text-[#475467]")
+            }
+          >
+            {item.label}
+            <span className="ml-1 text-[#A0A7B3]">({item.count})</span>
+            {selected && <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-0.5 rounded-t bg-[#071D59]" />}
+          </button>
+        );
+      })}
     </div>
   );
 }

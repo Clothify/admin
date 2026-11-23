@@ -113,7 +113,7 @@ export default function UserManagementTab() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by email, Name or wallet balance"
             aria-label="Search users"
-            className="h-[46px] w-full rounded-md border border-gray-200 bg-white pl-9 pr-12 text-sm placeholder:text-gray-400 focus:ring-1 focus:ring-blue-500"
+            className="h-[46px] w-full rounded-md border border-gray-200 bg-white pl-9 pr-12 text-sm placeholder:text-gray-400 focus:ring-1 focus:ring-slate-400"
           />
           <button
             ref={filterBtnRef}
@@ -135,7 +135,7 @@ export default function UserManagementTab() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="border-b border-gray-200 px-4 py-3">
           <div className="text-sm text-gray-500">
-            Showing {(safePage - 1) * perPage + 1} to {Math.min(safePage * perPage, total)} of {total} entries
+            Showing {total ? (safePage - 1) * perPage + 1 : 0} to {Math.min(safePage * perPage, total)} of {total} entries
           </div>
         </div>
 

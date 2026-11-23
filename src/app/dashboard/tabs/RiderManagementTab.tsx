@@ -226,7 +226,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, phone or status"
             aria-label="Search riders"
-            className="h-[46px] w-full rounded-md border border-gray-200 bg-white pl-9 pr-12 text-sm placeholder:text-gray-400 focus:ring-1 focus:ring-blue-500"
+            className="h-[46px] w-full rounded-md border border-gray-200 bg-white pl-9 pr-12 text-sm placeholder:text-gray-400 focus:ring-1 focus:ring-slate-400"
           />
           <button
             ref={filterBtnRef}
@@ -275,7 +275,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
                     }
                     onChange={() => toggleAll(items.map((i) => i.id))}
                     aria-label="Select all riders on this page"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-slate-400"
                   />
                 </th>
                 {[
@@ -310,7 +310,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
                       checked={selected.includes(r.id)}
                       onChange={() => toggleOne(r.id)}
                       aria-label={`Select ${r.fullName || "rider"}`}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-blue-600 focus:ring-slate-400"
                     />
                   </td>
 
@@ -338,10 +338,10 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
 
                   <td className="sticky right-0 z-10 bg-white px-3 py-3 text-sm group-hover/row:bg-gray-50" data-stop>
                     <div className="flex items-center justify-end gap-1">
-                    <button type="button" onClick={() => onRowClick(r)} className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label={`View details for ${r.fullName}`} title="View details"><Eye className="h-4 w-4"/></button>
+                    <button type="button" onClick={() => onRowClick(r)} className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-400" aria-label={`View details for ${r.fullName}`} title="View details"><Eye className="h-4 w-4"/></button>
                     <button
                       type="button"
-                      className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
                       onClick={(e) => openRowMenu(r, e.currentTarget)}
                       aria-label="Row actions"
                     >
