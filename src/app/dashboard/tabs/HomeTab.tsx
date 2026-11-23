@@ -76,7 +76,11 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
         </p>
       )}
 
-      {loading ? <DashboardContentLoadingState label="Loading dashboard overview" /> : (
+      {loading ? <DashboardContentLoadingState label="Loading dashboard overview" /> : !metrics ? (
+        <div className="rounded-xl border border-[#E7E9EE] bg-white px-5 py-10 text-center text-sm text-[#667085]">
+          Dashboard figures are unavailable. Reload the page to try again.
+        </div>
+      ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
             <MetricCard

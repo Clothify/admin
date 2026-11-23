@@ -39,6 +39,14 @@ body {
   outline-offset: 2px;
 }
 
+.dashboard-app :where(button, a, input, select, textarea, [tabindex]):focus {
+  --tw-ring-color: #98a2b3;
+}
+
+.dashboard-app :where(input:not([type="checkbox"]), select, textarea):focus {
+  border-color: #98a2b3;
+}
+
 .dashboard-app :where(button, a, input, select, textarea, [tabindex]):focus-visible {
   --tw-ring-color: #98a2b3;
   outline-color: #758297;
