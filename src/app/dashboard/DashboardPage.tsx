@@ -14,6 +14,7 @@ import {
   ArrowDownToLine,
   ShieldCheck,
   ScrollText,
+  LogOut,
 } from "lucide-react";
 
 import Sidebar from "@/components/dashboard/layout/Sidebar";
@@ -200,62 +201,67 @@ export default function DashboardPage() {
     );
   }
 
+  const goToTab = (name: string) => {
+    const next = visibleTabs.find((tab) => tab.name === name);
+    if (next) router.push("/dashboard/" + next.slug);
+  };
+  const sectionGroup =
+    ["users", "merchants", "riders", "orders"].includes(activeTab.slug) ? "Operations" :
+    ["finance", "withdrawals", "pricing", "referrals"].includes(activeTab.slug) ? "Finance" :
+    ["notifications", "support"].includes(activeTab.slug) ? "Engagement" :
+    ["admin-team", "audit-log"].includes(activeTab.slug) ? "Administration" : "Workspace";
+  const adminName = String(admin.displayName || user?.email || user?.phone || "Administrator");
+
   return (
-    <div className="min-h-screen bg-[#F7F8FA] lg:grid lg:grid-cols-[max-content_minmax(0,1fr)]">
-      {/* Intrinsic-width sidebar */}
+    <div className="dashboard-app min-h-dvh bg-[#F6F7F9] lg:grid lg:grid-cols-[246px_minmax(0,1fr)]">
       <Sidebar
         items={visibleTabs.map(({ name, icon }) => ({ name, icon }))}
         active={activeTab.name}
-        onSelect={(name) => {
-          const tab = visibleTabs.find((item) => item.name === name);
-          if (tab) router.push(`/dashboard/${tab.slug}`);
-        }}
+        onSelect={goToTab}
       />
 
       <div className="min-w-0">
-      {/* Header sits at content edge and spans full width */}
-      <header className="sticky top-0 z-30 bg-white">
-        <div className="pl-4 sm:px-6">
-          <div className="h-16 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-30 border-b border-[#E7E9EE] bg-white/95 backdrop-blur-sm">
+          <div className="flex h-[76px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400">Clothify control centre</p>
-              <p className="truncate text-sm font-semibold text-gray-900">{activeTab.name}</p>
+              <p className="truncate text-[11px] font-medium tracking-[0.025em] text-[#8993A2]">
+                Clothify <span className="mx-1.5 text-[#C7CDD6]">/</span> {sectionGroup}
+              </p>
+              <h1 className="mt-1 truncate text-[19px] font-semibold tracking-[-0.03em] text-[#172033] sm:text-[21px]">
+                {activeTab.name}
+              </h1>
             </div>
-            <div className="flex items-center gap-4">
+
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <AdminNotificationBell />
+              <div className="hidden h-7 w-px bg-[#E9EBEF] sm:block" aria-hidden="true" />
+              <div className="hidden max-w-[190px] text-right sm:block">
+                <p className="truncate text-[12px] font-semibold text-[#344054]">{adminName}</p>
+                <p className="text-[11px] text-[#98A1AE]">Administrator</p>
+              </div>
               <button
+                type="button"
                 onClick={() => {
                   clearSession();
                   router.push("/auth/signin");
                 }}
-                className="w-9 h-9 rounded-full bg-orange-500 grid place-items-center"
+                aria-label="Sign out of Clothify admin"
                 title="Sign out"
+                className="grid h-9 w-9 place-items-center rounded-lg border border-[#E7E9EE] bg-white text-[#667085] transition-colors hover:bg-[#F6F7F9] hover:text-[#172033]"
               >
-                <span className="text-white text-[13px] font-medium">
-                  {String(
-                    admin.displayName || user?.email || user?.phone || "A",
-                  )
-                    .charAt(0)
-                    .toUpperCase()}
-                </span>
+                <LogOut className="h-[17px] w-[17px]" />
               </button>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Content column (aligned with header start) */}
-      <div>
         <MobileTabs
           items={visibleTabs.map(({ name, icon }) => ({ name, icon }))}
           active={activeTab.name}
-          onSelect={(name) => {
-            const tab = visibleTabs.find((item) => item.name === name);
-            if (tab) router.push(`/dashboard/${tab.slug}`);
-          }}
+          onSelect={goToTab}
         />
 
-        <main className="mx-auto max-w-[1440px] px-4 sm:px-6 py-6">
+        <main id="main-content" className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
           {activeTab.slug === "overview" ? (
             <HomeTab permissions={admin.permissions} />
           ) : activeTab.slug === "withdrawals" ? (
@@ -268,7 +274,6 @@ export default function DashboardPage() {
             <ActiveView />
           )}
         </main>
-      </div>
       </div>
     </div>
   );
