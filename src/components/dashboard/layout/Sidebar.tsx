@@ -1,40 +1,86 @@
 "use client";
+
 import * as React from "react";
+
+type NavItem = { name: string; icon: React.ReactNode };
+
+const GROUPS = [
+  { label: "Workspace", names: ["Overview"] },
+  { label: "Operations", names: ["Users", "Merchants", "Riders", "Orders"] },
+  { label: "Finance", names: ["Revenue & Finance", "Withdrawals", "Pricing", "Referrals"] },
+  { label: "Engagement", names: ["Notifications", "Support"] },
+  { label: "Administration", names: ["Admin Team", "Audit Log"] },
+];
 
 export default function Sidebar({
   items,
   active,
   onSelect,
 }: {
-  items: { name: string; icon: React.ReactNode }[];
+  items: NavItem[];
   active: string;
   onSelect: (name: string) => void;
 }) {
   return (
     <aside
-      className="sticky top-0 z-40 hidden h-screen w-max self-start flex-col border-r border-gray-100 bg-white py-2 lg:flex"
-      aria-label="Primary"
+      className="sticky top-0 hidden h-dvh w-[246px] shrink-0 flex-col border-r border-[#E7E9EE] bg-white lg:flex"
+      aria-label="Primary navigation"
     >
-      <nav className="w-max overflow-y-auto p-3">
-        <ul className="w-max space-y-1">
-          {items.map((it) => (
-            <li key={it.name}>
-              <button
-                onClick={() => onSelect(it.name)}
-                className={`inline-flex w-fit items-center gap-2.5 whitespace-nowrap rounded-xl px-3 py-2.5 text-[14px] transition
-                  ${
-                    active === it.name
-                      ? "bg-[#91ADF6] text-blue-700"
-                      : "text-gray-700 hover:bg-gray-50"
-                  }`}
-              >
-                <span className="shrink-0">{it.icon}</span>
-                <span>{it.name}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
+      <div className="flex h-[76px] shrink-0 items-center gap-3 border-b border-[#F0F1F4] px-6">
+        <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[#071D59] text-base font-semibold text-white">C</span>
+        <div className="min-w-0">
+          <div className="text-[15px] font-semibold tracking-[-0.025em] text-[#172033]">Clothify</div>
+          <div className="mt-0.5 text-[11px] font-medium text-[#8A92A0]">ADMIN WORKSPACE</div>
+        </div>
+      </div>
+
+      <nav className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3.5 py-5">
+        {GROUPS.map((group) => {
+          const entries = group.names
+            .map((name) => items.find((item) => item.name === name))
+            .filter((item): item is NavItem => Boolean(item));
+          if (!entries.length) return null;
+
+          return (
+            <div key={group.label}>
+              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#98A1AE]">
+                {group.label}
+              </p>
+              <ul className="space-y-0.5">
+                {entries.map((item) => {
+                  const selected = active === item.name;
+                  return (
+                    <li key={item.name}>
+                      <button
+                        type="button"
+                        onClick={() => onSelect(item.name)}
+                        aria-current={selected ? "page" : undefined}
+                        className={
+                          "relative flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-[13px] font-medium transition-colors " +
+                          (selected
+                            ? "bg-[#EEF1F5] text-[#152644]"
+                            : "text-[#667085] hover:bg-[#F7F8FA] hover:text-[#263244]")
+                        }
+                      >
+                        {selected && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-[#071D59]" />}
+                        <span aria-hidden="true" className={selected ? "text-[#071D59]" : "text-[#8993A2]"}>
+                          {item.icon}
+                        </span>
+                        <span className="truncate">{item.name}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
       </nav>
+
+      <div className="shrink-0 border-t border-[#F0F1F4] px-6 py-4">
+        <p className="text-xs font-medium text-[#3A4656]">Clothify operations</p>
+        <p className="mt-0.5 text-[11px] text-[#98A1AE]">Internal use only</p>
+      </div>
     </aside>
   );
 }

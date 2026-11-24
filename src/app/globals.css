@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f7f9;
+  --foreground: #18202d;
+  --clothify-navy: #071d59;
+  --surface: #ffffff;
+  --stroke: #e7e9ee;
+  --muted: #667085;
 }
 
 @theme inline {
@@ -12,37 +16,78 @@
   --font-mono: var(--font-geist-mono);
 }
 
-body {
-  background: #f4f6f9;
-  color: #172033;
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+html {
+  background: var(--background);
 }
 
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #e4e8f0;
+  color: #18202d;
+}
+
+/* Maintain keyboard visibility without the bright blue halo used previously. */
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #758297;
   outline-offset: 2px;
 }
 
+.dashboard-app :where(button, a, input, select, textarea, [tabindex]):focus {
+  --tw-ring-color: #98a2b3;
+}
+
+.dashboard-app :where(input:not([type="checkbox"]), select, textarea):focus {
+  border-color: #98a2b3;
+}
+
+.dashboard-app :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  --tw-ring-color: #98a2b3;
+  outline-color: #758297;
+}
+
+.dashboard-app :where(input:not([type="checkbox"]), select, textarea):focus-visible {
+  border-color: #98a2b3;
+}
+
+:where(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--clothify-navy);
+}
+
 .overflow-x-auto {
-  scrollbar-color: #94a3b8 transparent;
+  scrollbar-color: #c6cbd4 transparent;
   scrollbar-width: thin;
 }
 
 .overflow-x-auto::-webkit-scrollbar {
-  height: 8px;
+  height: 7px;
 }
 
 .overflow-x-auto::-webkit-scrollbar-thumb {
-  background: #94a3b8;
+  background: #c6cbd4;
   border-radius: 999px;
 }
 
-/* In your global CSS file (e.g., globals.css) */
-.no-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge, Opera */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

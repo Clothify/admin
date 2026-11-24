@@ -1,38 +1,53 @@
 "use client";
+
 import * as React from "react";
+import { ChevronDown } from "lucide-react";
+
+type NavItem = { name: string; icon: React.ReactNode };
+
+const GROUPS = [
+  { label: "Workspace", names: ["Overview"] },
+  { label: "Operations", names: ["Users", "Merchants", "Riders", "Orders"] },
+  { label: "Finance", names: ["Revenue & Finance", "Withdrawals", "Pricing", "Referrals"] },
+  { label: "Engagement", names: ["Notifications", "Support"] },
+  { label: "Administration", names: ["Admin Team", "Audit Log"] },
+];
 
 export default function MobileTabs({
   items,
   active,
   onSelect,
 }: {
-  items: { name: string; icon: React.ReactNode }[];
+  items: NavItem[];
   active: string;
   onSelect: (name: string) => void;
 }) {
   return (
-    <div className="sticky top-16 z-30 border-b border-gray-200 bg-[#F7F8FA] px-4 py-3 lg:hidden">
-      <div className="relative after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-10 after:bg-gradient-to-l after:from-[#F7F8FA] after:to-transparent">
-      <div className="flex gap-2 overflow-x-auto pb-2" role="tablist" aria-label="Admin sections">
-        {items.map((it) => (
-          <button
-            key={it.name}
-            onClick={() => onSelect(it.name)}
-            role="tab"
-            aria-selected={active === it.name}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border
-              ${
-                active === it.name
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-200"
-              }`}
-          >
-            {it.icon}
-            <span className="whitespace-nowrap">{it.name}</span>
-          </button>
-        ))}
+    <nav
+      className="sticky top-[76px] z-20 flex items-center justify-between gap-4 border-b border-[#E7E9EE] bg-white px-4 py-3 sm:px-6 lg:hidden"
+      aria-label="Admin sections"
+    >
+      <span className="shrink-0 text-xs font-medium text-[#667085]">Go to section</span>
+      <div className="relative min-w-0 max-w-[230px] flex-1">
+        <select
+          aria-label="Choose admin section"
+          value={active}
+          onChange={(event) => onSelect(event.target.value)}
+          className="h-10 w-full appearance-none truncate rounded-lg border border-[#E1E5EA] bg-[#FAFBFC] py-2 pl-3 pr-9 text-[13px] font-medium text-[#172033]"
+        >
+          {GROUPS.map((group) => {
+            const entries = group.names.filter((name) =>
+              items.some((item) => item.name === name),
+            );
+            return entries.length ? (
+              <optgroup key={group.label} label={group.label}>
+                {entries.map((name) => <option key={name} value={name}>{name}</option>)}
+              </optgroup>
+            ) : null;
+          })}
+        </select>
+        <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#667085]" />
       </div>
-      </div>
-    </div>
+    </nav>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
+
 import * as React from "react";
-import { ChevronLeft, ChevronRight, ArrowLeft, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function Pagination({
   page,
@@ -13,82 +14,62 @@ export default function Pagination({
   onChange: (p: number) => void;
   className?: string;
 }) {
-  // Build a window of up to 5 pages, with ellipses when needed
   const windowSize = 5;
-
   const build = () => {
-    if (totalPages <= windowSize) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    // center around current page when possible
+    if (totalPages <= windowSize) return Array.from({ length: totalPages }, (_, index) => index + 1);
     let start = Math.max(1, page - Math.floor(windowSize / 2));
     let end = start + windowSize - 1;
     if (end > totalPages) {
       end = totalPages;
       start = totalPages - windowSize + 1;
     }
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
   };
+  const pages = build();
 
-  const windowPages = build();
-  const showLeftDots = windowPages[0] > 2;
-  const showRightDots = windowPages[windowPages.length - 1] < totalPages - 1;
-
-  const pill = (n: number) => (
+  const pageButton = (number: number) => (
     <button
-      key={n}
-      onClick={() => onChange(n)}
-      aria-label={`Go to page ${n}`}
-      aria-current={n === page ? "page" : undefined}
-      className={`h-10 w-10 min-w-9 px-3 rounded-full text-sm transition border
-        ${
-          n === page
-            ? "bg-[#233A78] text-white border-blue-600"
-            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-        }`}
+      type="button"
+      key={number}
+      onClick={() => onChange(number)}
+      aria-label={"Go to page " + number}
+      aria-current={number === page ? "page" : undefined}
+      className={
+        "grid h-9 min-w-9 place-items-center rounded-lg border px-2 text-[12px] font-medium transition-colors " +
+        (number === page
+          ? "border-[#D4DCE7] bg-[#EEF1F5] text-[#071D59]"
+          : "border-transparent text-[#667085] hover:border-[#E7E9EE] hover:bg-[#F7F8FA]")
+      }
     >
-      {String(n).padStart(2, "0")}
+      {number}
     </button>
   );
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <nav className={"flex items-center gap-1 " + className} aria-label="Pagination">
       <button
+        type="button"
         onClick={() => onChange(Math.max(1, page - 1))}
-        className="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-[#91ADF6] transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50"
-        aria-label="Previous"
-        disabled={page === 1}
+        className="grid h-9 w-9 place-items-center rounded-lg border border-[#E7E9EE] bg-white text-[#667085] hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label="Previous page"
+        disabled={page <= 1}
       >
-        <ArrowLeft className="h-4 w-4 text-gray-700" />
+        <ChevronLeft className="h-4 w-4" />
       </button>
-
-      {/* First page & left dots */}
-      {totalPages > windowSize && (
-        <>
-          {windowPages[0] > 1 && pill(1)}
-          {showLeftDots && <span className="px-1 text-gray-400">…</span>}
-        </>
-      )}
-
-      {/* Window */}
-      {windowPages.map(pill)}
-
-      {/* Right dots & last page */}
-      {totalPages > windowSize && (
-        <>
-          {showRightDots && <span className="px-1 text-gray-400">…</span>}
-          {windowPages[windowPages.length - 1] < totalPages && pill(totalPages)}
-        </>
-      )}
-
+      {totalPages > windowSize && pages[0] > 1 && pageButton(1)}
+      {totalPages > windowSize && pages[0] > 2 && <span className="px-1 text-xs text-[#98A1AE]">…</span>}
+      {pages.map(pageButton)}
+      {totalPages > windowSize && pages[pages.length - 1] < totalPages - 1 && <span className="px-1 text-xs text-[#98A1AE]">…</span>}
+      {totalPages > windowSize && pages[pages.length - 1] < totalPages && pageButton(totalPages)}
       <button
+        type="button"
         onClick={() => onChange(Math.min(totalPages, page + 1))}
-        className="grid h-10 w-10 place-items-center rounded-full border border-gray-200 bg-[#91ADF6] transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-50"
-        aria-label="Next"
-        disabled={page === totalPages}
+        className="grid h-9 w-9 place-items-center rounded-lg border border-[#E7E9EE] bg-white text-[#667085] hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label="Next page"
+        disabled={page >= totalPages}
       >
-        <ArrowRight className="h-4 w-4 text-gray-700" />
+        <ChevronRight className="h-4 w-4" />
       </button>
-    </div>
+    </nav>
   );
 }

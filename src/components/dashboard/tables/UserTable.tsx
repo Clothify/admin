@@ -44,7 +44,7 @@ export default function UserTable({
                 checked={users.length > 0 && selected.length === users.length}
                 onChange={toggleAll}
                 aria-label="Select all users on this page"
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 text-blue-600 focus:ring-slate-400"
               />
             </th>
             {[
@@ -81,7 +81,7 @@ export default function UserTable({
                     checked={selected.includes(u.id)}
                     onChange={() => toggle(u.id)}
                     aria-label={`Select ${u.fullName || "user"}`}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-slate-400"
                   />
                 </td>
 
@@ -122,7 +122,7 @@ export default function UserTable({
                     type="button"
                     onClick={() => onRowOpenHistory(u)}
                     aria-label={`View order history for ${u.fullName}`}
-                    className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 text-gray-500 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 text-gray-500 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-400"
                     title="View order history"
                   >
                     <History className="h-4 w-4" />
