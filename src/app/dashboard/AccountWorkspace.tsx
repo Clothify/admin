@@ -79,7 +79,7 @@ type MerchantProfile = Partner & {
   isExclusiveCapable: boolean;
   description: string | null;
   orders: { today: number; thisWeek: number };
-  prices: { id: string; clothType: { displayName: string }; serviceType: string; pricePerUnit: number }[];
+  prices: { id: string; clothTypeId: string; clothType: { displayName: string }; serviceType: string; pricePerUnit: number }[];
   reviews: { id: string; createdAt: string; rating: number; comment: string | null; user: { fullName: string } | null }[];
 };
 type RiderProfile = Partner & {
@@ -140,6 +140,42 @@ function Records({ rows, empty }: { rows: { id: string; primary: ReactNode; deta
       ))}
     </ul>
   );
+}
+
+function MerchantPricing({ prices }: { prices: MerchantProfile["prices"] }) {
+  const [search, setSearch] = useState("");
+  const [service, setService] = useState("");
+  const [page, setPage] = useState(1);
+  const services = [...new Set(prices.map(price => price.serviceType))].sort();
+  const types = [...new Map(prices.map(price => [price.clothTypeId, { id: price.clothTypeId, name: price.clothType.displayName }])).values()]
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const matching = types.filter(type => type.name.toLowerCase().includes(search.trim().toLowerCase()) &&
+    (!service || prices.some(price => price.clothTypeId === type.id && price.serviceType === service)));
+  const pageSize = 20;
+  const pageCount = Math.max(1, Math.ceil(matching.length / pageSize));
+  const visible = matching.slice((page - 1) * pageSize, page * pageSize);
+
+  return <div>
+    <p className="text-sm text-slate-600">{types.length} cloth types · {prices.length} prices</p>
+    <div className="mt-4 flex flex-wrap gap-2">
+      <input aria-label="Search cloth types" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} placeholder="Search cloth type" className="min-h-9 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 text-sm" />
+      <select aria-label="Filter services" value={service} onChange={event => { setService(event.target.value); setPage(1); }} className={controlClass}>
+        <option value="">All services</option>
+        {services.map(item => <option key={item} value={item}>{label(item)}</option>)}
+      </select>
+    </div>
+    <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
+      <table className="w-full min-w-[640px] text-left text-sm">
+        <thead className="bg-slate-50 text-xs text-slate-600"><tr><th className="px-4 py-3">Cloth type</th>{services.filter(item => !service || item === service).map(item => <th key={item} className="px-4 py-3">{label(item)}</th>)}</tr></thead>
+        <tbody className="divide-y divide-slate-100">{visible.map(type => <tr key={type.id}><th scope="row" className="px-4 py-3 font-medium text-slate-900">{type.name}</th>{services.filter(item => !service || item === service).map(item => {
+          const price = prices.find(entry => entry.clothTypeId === type.id && entry.serviceType === item);
+          return <td key={item} className="px-4 py-3 text-slate-700">{price ? formatNaira(price.pricePerUnit) : "Unavailable"}</td>;
+        })}</tr>)}</tbody>
+      </table>
+      {!visible.length && <p className="px-4 py-8 text-center text-sm text-slate-600">No prices match these filters.</p>}
+    </div>
+    {pageCount > 1 && <div className="mt-3 flex items-center justify-between gap-3"><p className="text-sm text-slate-600">Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, matching.length)} of {matching.length}</p><Pagination page={page} totalPages={pageCount} onChange={setPage} /></div>}
+  </div>;
 }
 
 function ProfileHistory({ directory, id }: { directory: AccountDirectory; id: string }) {
@@ -346,9 +382,7 @@ function PartnerSections({ profile, id, canReview, canViewOrders }: {
       {profile.directory === "merchants" && (
         <>
           <ProfileSection id="pricing" title="Services and pricing">
-            <Records empty="No prices configured." rows={profile.account.prices.map(price => ({
-              id: price.id, primary: price.clothType.displayName, detail: label(price.serviceType), trailing: formatNaira(price.pricePerUnit),
-            }))} />
+            <MerchantPricing prices={profile.account.prices} />
           </ProfileSection>
           <ProfileSection id="reviews" title="Recent reviews">
             <Records empty="No reviews yet." rows={profile.account.reviews.map(review => ({
