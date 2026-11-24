@@ -9,30 +9,28 @@ import UserFilterPopover from "@/components/dashboard/filters/UserFilterPopover"
 import ConfirmActionModal from "@/components/dashboard/modals/ConfirmActionModal";
 import OrderHistoryModal from "@/components/dashboard/modals/OrderHistoryModal";
 import { TableLoadingState } from "@/components/dashboard/ui/LoadingState";
+import { useDirectoryState, useRestoreDirectoryScroll } from "../DashboardState";
 
 import {
   countUsers,
   fetchUsers,
   setUserStatus,   // ← persist status toggle
   User,
-  UserStatus,
 } from "@/lib/users";
 
 export default function UserManagementTab() {
   // page UI state
-  const [tab, setTab] = React.useState<"all" | "new">("all");
-  const [search, setSearch] = React.useState("");
-  const [page, setPage] = React.useState(1);
+  const [{ tab, search, page, filters }, updateDirectory] = useDirectoryState("users", {
+    tab: "all" as "all" | "new",
+    search: "",
+    page: 1,
+    filters: { statuses: [] } as React.ComponentProps<typeof UserFilterPopover>["initial"],
+  });
   const perPage = 8;
 
   // filters
   const filterBtnRef = React.useRef<HTMLButtonElement | null>(null);
   const [filterOpen, setFilterOpen] = React.useState(false);
-  const [filters, setFilters] = React.useState<{
-    recentlyLogin?: boolean;
-    statuses: UserStatus[];
-    rejected?: boolean;
-  }>({ statuses: [] });
 
   // modals
   const [historyOpen, setHistoryOpen] = React.useState(false);
@@ -47,10 +45,10 @@ export default function UserManagementTab() {
   const [totalPages, setTotalPages] = React.useState(1);
   const [total, setTotal] = React.useState(0);
   const [safePage, setSafePage] = React.useState(1);
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => setPage(1), [search, tab, filters]);
+  useRestoreDirectoryScroll("users", !loading);
 
   React.useEffect(() => {
     let alive = true;
@@ -110,7 +108,7 @@ export default function UserManagementTab() {
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => updateDirectory({ search: e.target.value, page: 1 })}
             placeholder="Search by email, Name or wallet balance"
             aria-label="Search users"
             className="h-[46px] w-full rounded-md border border-gray-200 bg-white pl-9 pr-12 text-sm placeholder:text-gray-400 focus:ring-1 focus:ring-slate-400"
@@ -128,7 +126,7 @@ export default function UserManagementTab() {
 
       {/* Tabs */}
       <div className="mb-4">
-        <UserTabs active={tab} counts={counts} onChange={setTab} />
+        <UserTabs active={tab} counts={counts} onChange={(tab) => updateDirectory({ tab, page: 1 })} />
       </div>
 
       {/* Card */}
@@ -153,7 +151,7 @@ export default function UserManagementTab() {
 
         <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
           <span className="hidden text-sm text-gray-500 sm:inline">Page {safePage} of {totalPages}</span>
-          <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
+          <Pagination page={safePage} totalPages={totalPages} onChange={(page) => updateDirectory({ page })} />
         </div>
       </div>
 
@@ -165,7 +163,7 @@ export default function UserManagementTab() {
           initial={filters}
           onClose={() => setFilterOpen(false)}
           onApply={(next) => {
-            setFilters(next);
+            updateDirectory({ filters: next, page: 1 });
             setFilterOpen(false);
           }}
         />

@@ -4,6 +4,7 @@ import { History, UserMinus } from "lucide-react";
 import type { User } from "@/lib/users";
 import { formatNaira, formatNigerianPhone } from "@/lib/api";
 import CopyableCell from "./CopyableCell";
+import AccountProfileLink from "@/app/dashboard/AccountProfileLink";
 
 export default function UserTable({
   users,
@@ -118,6 +119,7 @@ export default function UserTable({
                 {/* actions: icon-only toggle */}
                 <td className="sticky right-0 z-10 bg-white px-3 py-3 text-sm group-hover/row:bg-gray-50" onClick={stop}>
                   <div className="flex items-center justify-end gap-1">
+                  <AccountProfileLink directory="users" id={u.id} name={u.fullName} />
                   <button
                     type="button"
                     onClick={() => onRowOpenHistory(u)}

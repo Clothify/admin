@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Eye, Filter, MoreHorizontal, Radio, Search as SearchIcon, UsersRound } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Filter, MoreHorizontal, Radio, Search as SearchIcon, UsersRound } from "lucide-react";
 
 import Pagination from "@/components/dashboard/tables/Pagination";
 import CopyableCell from "@/components/dashboard/tables/CopyableCell";
@@ -10,7 +11,8 @@ import UserFilterPopover from "@/components/dashboard/filters/UserFilterPopover"
 import MerchantBulkActions from "@/components/dashboard/toolbar/MerchantBulkActions"; // reuse
 import RiderRowMenu from "@/components/dashboard/menus/RiderRowMenu";
 import ConfirmMerchantActionModal from "@/components/dashboard/modals/ConfirmMerchantActionModal"; // reuse confirm
-import MerchantProfileModal from "@/components/dashboard/modals/MerchantProfileModal"; // reuse profile shell
+import AccountProfileLink from "../AccountProfileLink";
+import { useDirectoryState, useRememberDirectoryScroll, useRestoreDirectoryScroll } from "../DashboardState";
 import RiderDocumentsModal from "@/components/dashboard/modals/RiderDocumentsModal";
 import { TableLoadingState } from "@/components/dashboard/ui/LoadingState";
 import RiderDispatchWorkspace from "@/components/dashboard/riders/RiderDispatchWorkspace";
@@ -71,21 +73,22 @@ const Tabs = ({
 
 /* --------------------------- Main Component --------------------------- */
 export default function RiderManagementTab({ permissions = [] }: { permissions?: string[] }) {
+  const router = useRouter();
+  const rememberScroll = useRememberDirectoryScroll("riders");
   const granted = React.useMemo(() => new Set(permissions), [permissions]);
   const canViewDispatch = granted.has("orders.read") && granted.has("riders.read");
-  const [workspace, setWorkspace] = React.useState<"dispatch" | "directory">(
-    canViewDispatch ? "dispatch" : "directory",
-  );
-  // query state
-  const [tab, setTab] = React.useState<RiderStatus>("verified");
-  const [search, setSearch] = React.useState("");
-  const [page, setPage] = React.useState(1);
+  const [{ workspace, tab, search, page, filters }, updateDirectory] = useDirectoryState("riders", {
+    workspace: (canViewDispatch ? "dispatch" : "directory") as "dispatch" | "directory",
+    tab: "verified" as RiderStatus,
+    search: "",
+    page: 1,
+    filters: { statuses: [] } as React.ComponentProps<typeof UserFilterPopover>["initial"],
+  });
   const perPage = 8;
 
   // filter
   const filterBtnRef = React.useRef<HTMLButtonElement | null>(null);
   const [filterOpen, setFilterOpen] = React.useState(false);
-  const [filters, setFilters] = React.useState<any>({ statuses: [] });
 
   // selection
   const [selected, setSelected] = React.useState<string[]>([]);
@@ -107,7 +110,6 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
   };
 
   // modals
-  const [profileOpen, setProfileOpen] = React.useState(false); // verified/suspended
   const [docsOpen, setDocsOpen] = React.useState(false); // pending/rejected
   const [current, setCurrent] = React.useState<Rider | null>(null);
 
@@ -121,11 +123,11 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
   const [total, setTotal] = React.useState(0);
   const [totalPages, setTotalPages] = React.useState(1);
   const [safePage, setSafePage] = React.useState(1);
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [version, setVersion] = React.useState(0);
 
-  React.useEffect(() => setPage(1), [search, tab, filters]);
+  useRestoreDirectoryScroll("riders", !loading);
 
   React.useEffect(() => {
     let alive = true;
@@ -165,21 +167,19 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
   };
   const closeAll = () => {
     setConfirmOpen(false);
-    setProfileOpen(false);
     setDocsOpen(false);
     setMenuOpen(false);
     setSelected([]);
   };
-  const onRowClick = async (r: Rider) => {
+  const openDocuments = async (r: Rider) => {
     setCurrent(r);
+    setDocsOpen(true);
     try {
       const detailed = await fetchRiderDetail(r.id);
-      setCurrent(detailed);
+      setCurrent(current => current?.id === r.id ? detailed : current);
     } catch {
       // keep row data if detail fetch fails
     }
-    if (r.status === "verified" || r.status === "suspended") setProfileOpen(true);
-    else setDocsOpen(true);
   };
 
   const applyStatus = async () => {
@@ -207,14 +207,14 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
   return (
     <div className="bg-transparent">
       <div className="mb-4 flex items-center gap-1 border-b border-gray-200" role="tablist" aria-label="Rider views">
-        {canViewDispatch && <button type="button" role="tab" aria-selected={workspace === "dispatch"} onClick={() => setWorkspace("dispatch")} className={`relative inline-flex h-11 items-center gap-2 px-3 text-sm font-semibold transition ${workspace === "dispatch" ? "text-[#0B1E5B]" : "text-gray-500 hover:text-gray-800"}`}><Radio className="h-4 w-4" />Dispatch{workspace === "dispatch" && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#0B1E5B]" />}</button>}
-        <button type="button" role="tab" aria-selected={workspace === "directory"} onClick={() => setWorkspace("directory")} className={`relative inline-flex h-11 items-center gap-2 px-3 text-sm font-semibold transition ${workspace === "directory" ? "text-[#0B1E5B]" : "text-gray-500 hover:text-gray-800"}`}><UsersRound className="h-4 w-4" />Directory{workspace === "directory" && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#0B1E5B]" />}</button>
+        {canViewDispatch && <button type="button" role="tab" aria-selected={workspace === "dispatch"} onClick={() => updateDirectory({ workspace: "dispatch" })} className={`relative inline-flex h-11 items-center gap-2 px-3 text-sm font-semibold transition ${workspace === "dispatch" ? "text-[#0B1E5B]" : "text-gray-500 hover:text-gray-800"}`}><Radio className="h-4 w-4" />Dispatch{workspace === "dispatch" && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#0B1E5B]" />}</button>}
+        <button type="button" role="tab" aria-selected={workspace === "directory"} onClick={() => updateDirectory({ workspace: "directory" })} className={`relative inline-flex h-11 items-center gap-2 px-3 text-sm font-semibold transition ${workspace === "directory" ? "text-[#0B1E5B]" : "text-gray-500 hover:text-gray-800"}`}><UsersRound className="h-4 w-4" />Directory{workspace === "directory" && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#0B1E5B]" />}</button>
       </div>
 
       {workspace === "dispatch" && canViewDispatch ? <RiderDispatchWorkspace permissions={permissions} /> : <>
       {/* Tabs */}
       <div className="mb-4">
-        <Tabs active={tab} onChange={setTab} counts={counts} />
+        <Tabs active={tab} onChange={(tab) => updateDirectory({ tab, page: 1 })} counts={counts} />
       </div>
 
       {/* Search + filter + bulk icons */}
@@ -223,7 +223,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => updateDirectory({ search: e.target.value, page: 1 })}
             placeholder="Search by name, phone or status"
             aria-label="Search riders"
             className="h-[46px] w-full rounded-md border border-gray-200 bg-white pl-9 pr-12 text-sm placeholder:text-gray-400 focus:ring-1 focus:ring-slate-400"
@@ -338,7 +338,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
 
                   <td className="sticky right-0 z-10 bg-white px-3 py-3 text-sm group-hover/row:bg-gray-50" data-stop>
                     <div className="flex items-center justify-end gap-1">
-                    <button type="button" onClick={() => onRowClick(r)} className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-400" aria-label={`View details for ${r.fullName}`} title="View details"><Eye className="h-4 w-4"/></button>
+                    <AccountProfileLink directory="riders" id={r.id} name={r.fullName} />
                     <button
                       type="button"
                       className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
@@ -361,7 +361,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
             Showing {(safePage - 1) * perPage + 1} to{" "}
             {Math.min(safePage * perPage, total)} of {total} entries
           </span>
-          <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
+          <Pagination page={safePage} totalPages={totalPages} onChange={(page) => updateDirectory({ page })} />
         </div>
       </div>
 
@@ -373,7 +373,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
           initial={filters}
           onClose={() => setFilterOpen(false)}
           onApply={(next) => {
-            setFilters(next);
+            updateDirectory({ filters: next, page: 1 });
             setFilterOpen(false);
           }}
         />
@@ -387,42 +387,19 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
         onClose={() => setMenuOpen(false)}
         onViewProfile={() => {
           if (!menuRider) return;
-          setCurrent(menuRider);
-          setProfileOpen(true);
+          rememberScroll();
+          router.push(`/dashboard/riders/${encodeURIComponent(menuRider.id)}`);
         }}
         onUpgrade={() => {
           // optional: rider upgrade flow
         }}
         onViewDocs={() => {
-          if (!menuRider) return;
-          setCurrent(menuRider);
-          setDocsOpen(true);
+          if (menuRider) void openDocuments(menuRider);
         }}
         onSuspend={() => openConfirm("suspend", menuRider!)}
         onActivate={() => openConfirm("activate", menuRider!)}
         onApprove={() => openConfirm("approve", menuRider!)}
         onReject={() => openConfirm("reject", menuRider!)}
-      />
-
-      {/* Profile (verified/suspended) — reuse merchant modal */}
-      <MerchantProfileModal
-        open={profileOpen && !!current}
-        onClose={() => setProfileOpen(false)}
-        merchant={
-          current
-            ? ({
-                ...current,
-                businessName: current.fullName,
-                serviceTier: current.vehicle ?? "Rider",
-                city: current.city,
-                address: current.address || current.area || current.city,
-              } as any)
-            : undefined
-        }
-        onPrimaryAction={() => {
-          if (!current) return;
-          openConfirm(current.status === "suspended" ? "activate" : "suspend", current);
-        }}
       />
 
       {/* Documents (pending/rejected) — rider-specific 540px modal */}

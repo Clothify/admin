@@ -82,7 +82,7 @@ export default function RiderRowMenu({
         return (
           <>
             <Row onClick={onViewProfile}>View profile</Row>
-            <Row onClick={onUpgrade}>Upgrade rider</Row>
+            <Row onClick={onViewDocs}>View Docs</Row>
             <Row danger onClick={onApprove}>Approve rider</Row>
           </>
         );

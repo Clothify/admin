@@ -21,6 +21,7 @@ import Sidebar from "@/components/dashboard/layout/Sidebar";
 import MobileTabs from "@/components/dashboard/layout/MobileTabs";
 import { PageLoadingState } from "@/components/dashboard/ui/LoadingState";
 import AdminNotificationBell from "@/components/dashboard/AdminNotificationBell";
+import { DashboardStateProvider } from "./DashboardState";
 
 import HomeTab from "./tabs/HomeTab";
 import UserManagementTab from "./tabs/UserManagementTab";
@@ -138,7 +139,7 @@ const TABS = [
   },
 ];
 
-export default function DashboardPage() {
+export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [checked, setChecked] = React.useState(false);
@@ -151,25 +152,33 @@ export default function DashboardPage() {
       router.replace("/auth/signin");
       return;
     }
+    let current = true;
     getAdminContext()
       .then((context) => {
+        if (!current) return;
         setAdmin(context);
         setChecked(true);
       })
       .catch((error) => {
+        if (!current) return;
         setAccessError(
           error?.message || "Unable to load administrator permissions",
         );
         setChecked(true);
       });
+    return () => { current = false; };
   }, [router]);
+
+  React.useEffect(() => {
+    if (!requireAdminSession()) router.replace("/auth/signin");
+  }, [pathname, router]);
 
   const visibleTabs = TABS.filter((tab) =>
     admin?.permissions.includes(tab.permission),
   );
-  const activeSlug = pathname.split("/").filter(Boolean).at(-1) || "overview";
-  const activeTab =
-    visibleTabs.find((tab) => tab.slug === activeSlug) || visibleTabs[0];
+  const [, activeSlug = "overview", accountId] = pathname.split("/").filter(Boolean);
+  const requestedTab = visibleTabs.find((tab) => tab.slug === activeSlug);
+  const activeTab = requestedTab || visibleTabs[0];
   const ActiveView = activeTab?.component;
 
   if (!checked) {
@@ -213,6 +222,7 @@ export default function DashboardPage() {
   const adminName = String(admin.displayName || user?.email || user?.phone || "Administrator");
 
   return (
+    <DashboardStateProvider permissions={admin.permissions}>
     <div className="dashboard-app min-h-dvh bg-[#F6F7F9] lg:grid lg:grid-cols-[246px_minmax(0,1fr)]">
       <Sidebar
         items={visibleTabs.map(({ name, icon }) => ({ name, icon }))}
@@ -262,7 +272,13 @@ export default function DashboardPage() {
         />
 
         <main id="main-content" className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 sm:py-7 lg:px-8 lg:py-8">
-          {activeTab.slug === "overview" ? (
+          {accountId ? (
+            requestedTab ? children : (
+              <p role="alert" className="rounded-xl bg-white p-6 text-sm text-slate-700">
+                Your administrator role does not have access to this account directory.
+              </p>
+            )
+          ) : activeTab.slug === "overview" ? (
             <HomeTab permissions={admin.permissions} />
           ) : activeTab.slug === "withdrawals" ? (
             <WithdrawalsTab permissions={admin.permissions} />
@@ -276,5 +292,6 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+    </DashboardStateProvider>
   );
 }

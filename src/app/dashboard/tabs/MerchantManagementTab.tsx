@@ -2,9 +2,9 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Filter,
-  Eye,
   MoreHorizontal,
   Search as SearchIcon,
 } from "lucide-react";
@@ -15,7 +15,8 @@ import UserFilterPopover from "@/components/dashboard/filters/UserFilterPopover"
 
 import MerchantBulkActions from "@/components/dashboard/toolbar/MerchantBulkActions";
 import MerchantRowMenu from "@/components/dashboard/menus/MerchantRowMenu";
-import MerchantProfileModal from "@/components/dashboard/modals/MerchantProfileModal";
+import AccountProfileLink from "../AccountProfileLink";
+import { useDirectoryState, useRememberDirectoryScroll, useRestoreDirectoryScroll } from "../DashboardState";
 import MerchantProfileUpdatesPanel from "@/components/dashboard/MerchantProfileUpdatesPanel";
 import MerchantDocumentsModal from "@/components/dashboard/modals/MerchantDocumentsModal";
 import ConfirmMerchantActionModal from "@/components/dashboard/modals/ConfirmMerchantActionModal";
@@ -77,17 +78,21 @@ const Tabs = ({
 
 /* ------------------------------- Main Screen ------------------------------ */
 export default function MerchantManagementTab() {
+  const router = useRouter();
+  const rememberScroll = useRememberDirectoryScroll("merchants");
   const [updatesOpen, setUpdatesOpen] = React.useState(false);
   /* ---------- query state ---------- */
-  const [tab, setTab] = React.useState<MerchantStatus>("verified");
-  const [search, setSearch] = React.useState("");
-  const [page, setPage] = React.useState(1);
+  const [{ tab, search, page, filters }, updateDirectory] = useDirectoryState("merchants", {
+    tab: "verified" as MerchantStatus,
+    search: "",
+    page: 1,
+    filters: { statuses: [] } as React.ComponentProps<typeof UserFilterPopover>["initial"],
+  });
   const perPage = 8;
 
   /* ---------- filter popover ---------- */
   const filterBtnRef = React.useRef<HTMLButtonElement | null>(null);
   const [filterOpen, setFilterOpen] = React.useState(false);
-  const [filters, setFilters] = React.useState<any>({ statuses: [] }); // keep UI filter shape
 
   /* ---------- selection ---------- */
   const [selected, setSelected] = React.useState<string[]>([]);
@@ -109,7 +114,6 @@ export default function MerchantManagementTab() {
   };
 
   /* ---------- modals ---------- */
-  const [profileOpen, setProfileOpen] = React.useState(false);
   const [docsOpen, setDocsOpen] = React.useState(false);
   const [current, setCurrent] = React.useState<Merchant | null>(null);
 
@@ -125,11 +129,11 @@ export default function MerchantManagementTab() {
   const [total, setTotal] = React.useState(0);
   const [totalPages, setTotalPages] = React.useState(1);
   const [safePage, setSafePage] = React.useState(1);
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [version, setVersion] = React.useState(0);
 
-  React.useEffect(() => setPage(1), [search, tab, filters]);
+  useRestoreDirectoryScroll("merchants", !loading);
 
   React.useEffect(() => {
     let alive = true;
@@ -182,22 +186,20 @@ export default function MerchantManagementTab() {
 
   const afterConfirmCloseAll = () => {
     setConfirmOpen(false);
-    setProfileOpen(false);
     setDocsOpen(false);
     setMenuOpen(false);
     setSelected([]);
   };
 
-  const onRowClick = async (m: Merchant) => {
+  const openDocuments = async (m: Merchant) => {
     setCurrent(m);
+    setDocsOpen(true);
     try {
       const detailed = await fetchMerchantDetail(m.id);
-      setCurrent(detailed);
+      setCurrent(current => current?.id === m.id ? detailed : current);
     } catch {
       // keep row data if detail fetch fails
     }
-    if (m.status === "verified" || m.status === "suspended") setProfileOpen(true);
-    else setDocsOpen(true);
   };
 
   const applyStatus = async () => {
@@ -234,7 +236,7 @@ export default function MerchantManagementTab() {
       {updatesOpen && <MerchantProfileUpdatesPanel />}
       {/* Tabs header */}
       <div className="mb-4">
-        <Tabs active={tab} onChange={(t) => setTab(t)} counts={counts} />
+        <Tabs active={tab} onChange={(tab) => updateDirectory({ tab, page: 1 })} counts={counts} />
       </div>
 
       {/* Search row with filter + icon-only bulk actions */}
@@ -243,7 +245,7 @@ export default function MerchantManagementTab() {
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => updateDirectory({ search: e.target.value, page: 1 })}
             placeholder="Search by email, Name or number of branch"
             aria-label="Search merchants"
             className="h-[46px] w-full rounded-md border border-gray-200 bg-white pl-9 pr-12 text-sm placeholder:text-gray-400 focus:ring-1 focus:ring-slate-400"
@@ -355,7 +357,7 @@ export default function MerchantManagementTab() {
 
                   <td className="sticky right-0 z-10 bg-white px-3 py-3 text-sm group-hover/row:bg-gray-50" data-stop>
                     <div className="flex items-center justify-end gap-1">
-                    <button type="button" onClick={() => onRowClick(m)} className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-400" aria-label={`View details for ${m.businessName}`} title="View details"><Eye className="h-4 w-4"/></button>
+                    <AccountProfileLink directory="merchants" id={m.id} name={m.businessName} />
                     <button
                       type="button"
                       className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
@@ -379,7 +381,7 @@ export default function MerchantManagementTab() {
             Showing {(safePage - 1) * perPage + 1} to{" "}
             {Math.min(safePage * perPage, total)} of {total} entries
           </span>
-          <Pagination page={safePage} totalPages={totalPages} onChange={setPage} />
+          <Pagination page={safePage} totalPages={totalPages} onChange={(page) => updateDirectory({ page })} />
         </div>
       </div>
 
@@ -391,7 +393,7 @@ export default function MerchantManagementTab() {
           initial={filters}
           onClose={() => setFilterOpen(false)}
           onApply={(next) => {
-            setFilters(next);
+            updateDirectory({ filters: next, page: 1 });
             setFilterOpen(false);
           }}
         />
@@ -403,40 +405,21 @@ export default function MerchantManagementTab() {
         anchor={menuCoords}
         status={(menuMerchant?.status ?? "verified") as MerchantStatus}
         onClose={() => setMenuOpen(false)}
-        onViewProfile={async () => {
+        onViewProfile={() => {
           if (!menuMerchant) return;
-          setCurrent(menuMerchant);
-          setProfileOpen(true);
-          try {
-            setCurrent(await fetchMerchantDetail(menuMerchant.id));
-          } catch {
-            // Keep the table summary visible if the detail request fails.
-          }
+          rememberScroll();
+          router.push(`/dashboard/merchants/${encodeURIComponent(menuMerchant.id)}`);
         }}
         onUpgrade={() => {
           // TODO: navigate/show upgrade UI
         }}
         onViewDocs={() => {
-          if (!menuMerchant) return;
-          setCurrent(menuMerchant);
-          setDocsOpen(true);
+          if (menuMerchant) void openDocuments(menuMerchant);
         }}
         onSuspend={() => openConfirm("suspend", menuMerchant!)}
         onActivate={() => openConfirm("activate", menuMerchant!)}
         onApprove={() => openConfirm("approve", menuMerchant!)}
         onReject={() => openConfirm("reject", menuMerchant!)}
-      />
-
-      {/* Profile modal (Verified/Suspended) */}
-      <MerchantProfileModal
-        open={profileOpen && !!current}
-        onClose={() => setProfileOpen(false)}
-        merchant={current ?? undefined}
-        onPrimaryAction={() => {
-          // Suspend/Activate based on status
-          if (!current) return;
-          openConfirm(current.status === "suspended" ? "activate" : "suspend", current);
-        }}
       />
 
       {/* Docs modal (Pending/Rejected) */}

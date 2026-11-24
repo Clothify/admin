@@ -58,7 +58,7 @@ function FileOrValue({ change, value }: { change: MerchantProfileChange; value: 
   return <span className="break-words">{String(value)}</span>;
 }
 
-export default function MerchantProfileUpdatesPanel() {
+export default function MerchantProfileUpdatesPanel({ merchantId, canReview = true }: { merchantId?: string; canReview?: boolean }) {
   const [status, setStatus] = React.useState("LIVE");
   const [search, setSearch] = React.useState("");
   const [page, setPage] = React.useState(1);
@@ -74,17 +74,17 @@ export default function MerchantProfileUpdatesPanel() {
     let current = true;
     setLoading(true);
     apiFetch<ChangePage>("/admin/merchant-profile-changes", {
-      query: { status: status || undefined, search: search || undefined, page, limit: 20 },
+      query: { merchantId, status: status || undefined, search: search || undefined, page, limit: 20 },
     }).then((result) => {
       if (current) { setResponse(result); setError(""); }
     }).catch((err: unknown) => {
       if (current) setError(err instanceof Error ? err.message : "Unable to load merchant updates.");
     }).finally(() => { if (current) setLoading(false); });
     return () => { current = false; };
-  }, [page, search, status, version]);
+  }, [merchantId, page, search, status, version]);
 
   const reject = async (id: string) => {
-    if (saving || reason.trim().length < 4) return;
+    if (!canReview || saving || reason.trim().length < 4) return;
     setSaving(true);
     try {
       await apiFetch("/admin/merchant-profile-changes/" + encodeURIComponent(id) + "/reject", {
@@ -109,8 +109,8 @@ export default function MerchantProfileUpdatesPanel() {
           <p className="mt-1 text-sm text-gray-500">Verified merchants publish directly. Changes can be rejected afterward.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <input aria-label="Search merchant updates" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search business name" className="h-10 w-44 rounded-lg border border-gray-200 px-3 text-sm" />
+          {!merchantId && <input aria-label="Search merchant updates" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search business name" className="h-10 w-44 rounded-lg border border-gray-200 px-3 text-sm" />}
           <select aria-label="Filter profile updates" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
             className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm">
             <option value="LIVE">Live</option>
@@ -151,7 +151,7 @@ export default function MerchantProfileUpdatesPanel() {
                       {change.rejectionReason && <p className="mt-1 max-w-48 text-xs text-gray-500">{change.rejectionReason}</p>}
                     </td>
                     <td className="px-4 py-4 text-right">
-                      {change.status === "LIVE" && <button type="button"
+                      {canReview && change.status === "LIVE" && <button type="button"
                         onClick={() => { setSelectedId(selectedId === change.id ? null : change.id); setReason(""); }}
                         className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50">
                         Reject

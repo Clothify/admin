@@ -86,7 +86,7 @@ export default function MerchantRowMenu({
         return (
           <>
             <Row onClick={onViewProfile}>View profile</Row>
-            <Row onClick={onUpgrade}>Upgrade merchant</Row>
+            <Row onClick={onViewDocs}>View Docs</Row>
             <Row danger onClick={onApprove}>Approve merchant</Row>
           </>
         );
