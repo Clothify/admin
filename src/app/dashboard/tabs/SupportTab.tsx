@@ -260,7 +260,7 @@ function Composer({
 
   return (
     <div className="shrink-0 border-t border-slate-200 bg-white p-3 sm:p-4">
-      <div className="flex items-end gap-2 rounded-2xl border border-slate-300 bg-white p-2 shadow-sm focus-within:border-[#0B1E5B] focus-within:ring-4 focus-within:ring-[#0B1E5B]/10">
+      <div className="flex items-end gap-2 rounded-2xl border border-slate-300 bg-white p-2 shadow-sm">
         <textarea
           rows={1}
           value={value}
@@ -273,7 +273,7 @@ function Composer({
           }}
           disabled={disabled || sending}
           placeholder={disabled ? "Reopen this conversation to reply" : "Write a message…"}
-          className="max-h-32 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
+          className="support-reply-input max-h-32 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
         />
         <button
           type="button"
@@ -467,7 +467,7 @@ export default function SupportTab() {
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search support conversations" placeholder={`Search ${selectedAudience.label.toLowerCase()}…`} className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none placeholder:text-slate-400 focus:border-[#0B1E5B] focus:bg-white focus:ring-4 focus:ring-[#0B1E5B]/10" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search support conversations" placeholder={`Search ${selectedAudience.label.toLowerCase()}…`} className="support-search-input h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none placeholder:text-slate-400" />
             </div>
           </div>
 

@@ -7,12 +7,25 @@ import MetricCard from "@/components/dashboard/cards/MetricCard";
 import DonutChart from "@/components/dashboard/charts/DonutChart";
 import { DashboardContentLoadingState } from "@/components/dashboard/ui/LoadingState";
 import { apiFetch, formatNaira } from "@/lib/api";
-import { fetchFinanceSummary } from "@/lib/finance";
+import { fetchFinanceSummary, type FinanceSummary } from "@/lib/finance";
+
+type Period = "" | "week" | "month";
+
+type DashboardMetrics = {
+  range: { from: string; to: string } | null;
+  users: number;
+  merchants: number;
+  riders: number;
+  pendingApprovals: { merchants: number; riders: number };
+  orders: { active: number; completed: number; cancelled: number; today: number; inPeriod: number | null };
+  support: { openComplaints: number };
+};
 
 export default function HomeTab({ permissions = [] }: { permissions?: string[] }) {
   const canViewFinance = permissions.includes("finance.read");
-  const [metrics, setMetrics] = React.useState<any | null>(null);
-  const [finance, setFinance] = React.useState<any | null>(null);
+  const [period, setPeriod] = React.useState<Period>("");
+  const [metrics, setMetrics] = React.useState<DashboardMetrics | null>(null);
+  const [finance, setFinance] = React.useState<FinanceSummary | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -20,9 +33,23 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
     let alive = true;
     setLoading(true);
     setError(null);
+    setMetrics(null);
+    setFinance(null);
+
+    const metricsRequest = apiFetch<DashboardMetrics>("/admin/dashboard/metrics", {
+      query: { period: period || undefined },
+    }).then(result => {
+      if (period && !result.range) throw new Error("Period figures are unavailable.");
+      return result;
+    });
+
     Promise.allSettled([
-      apiFetch<any>("/admin/dashboard/metrics"),
-      canViewFinance ? fetchFinanceSummary({}) : Promise.resolve(null),
+      metricsRequest,
+      !canViewFinance
+        ? Promise.resolve(null)
+        : period
+          ? metricsRequest.then(result => fetchFinanceSummary(result.range ?? {}))
+          : fetchFinanceSummary({}),
     ]).then(([metricsResult, financeResult]) => {
       if (!alive) return;
       if (metricsResult.status === "fulfilled") {
@@ -31,11 +58,11 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
         setError(metricsResult.reason?.message || "Unable to load dashboard metrics");
       }
       if (financeResult.status === "fulfilled") setFinance(financeResult.value);
-    }).finally(() => {
-      if (alive) setLoading(false);
+      setLoading(false);
     });
+
     return () => { alive = false; };
-  }, [canViewFinance]);
+  }, [canViewFinance, period]);
 
   const users = Number(metrics?.users ?? 0);
   const merchants = Number(metrics?.merchants ?? 0);
@@ -45,9 +72,9 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
   const activeOrders = Number(metrics?.orders?.active ?? 0);
   const completedOrders = Number(metrics?.orders?.completed ?? 0);
   const cancelledOrders = Number(metrics?.orders?.cancelled ?? 0);
-  const todayOrders = Number(metrics?.orders?.today ?? 0);
+  const createdOrders = Number((period ? metrics?.orders?.inPeriod : metrics?.orders?.today) ?? 0);
   const openComplaints = Number(metrics?.support?.openComplaints ?? 0);
-  const show = (value: number) => metrics ? value.toLocaleString("en-NG") : "—";
+  const show = (value: number) => metrics ? value.toLocaleString("en-NG") : "-";
   const change = finance?.changes?.netPlatformRevenue;
   const revenueChange = typeof change === "number" && Number.isFinite(change)
     ? (change >= 0 ? "+" : "") + change.toFixed(1) + "%"
@@ -61,13 +88,24 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
             Platform snapshot
           </h2>
           <p className="mt-1 text-[13px] text-[#667085]">
-            Key figures and operational items requiring attention.
+            {period ? "Counts reflect records created in the selected period." : "Key figures and items requiring attention."}
           </p>
         </div>
-        <p className="inline-flex items-center gap-2 rounded-full border border-[#E7E9EE] bg-white px-3 py-1.5 text-[11px] text-[#667085]">
-          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[#7B9B8A]" />
-          Latest available figures
-        </p>
+        <label className="inline-flex items-center gap-2 text-sm text-[#475467]">
+          <span>Period</span>
+          <select
+            value={period}
+            onChange={event => {
+              setLoading(true);
+              setPeriod(event.target.value as Period);
+            }}
+            className="min-h-9 rounded-md border border-[#E7E9EE] bg-white px-3 text-sm font-medium text-[#071D59]"
+          >
+            <option value="">Latest available figures</option>
+            <option value="week">This week</option>
+            <option value="month">This month</option>
+          </select>
+        </label>
       </div>
 
       {error && (
@@ -91,9 +129,9 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
             />
             <MetricCard
               icon={<ClipboardList className="h-[18px] w-[18px]" />}
-              title="Orders today"
-              value={show(todayOrders)}
-              detail="Created today"
+              title={period ? "Orders created" : "Orders today"}
+              value={show(createdOrders)}
+              detail={period ? "Created in the selected period" : "Created today"}
             />
             <MetricCard
               icon={<LifeBuoy className="h-[18px] w-[18px]" />}
@@ -105,8 +143,8 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
               <MetricCard
                 icon={<Landmark className="h-[18px] w-[18px]" />}
                 title="Net platform revenue"
-                value={finance ? formatNaira(Number(finance.netPlatformRevenue ?? 0)) : "—"}
-                detail={finance ? "Latest financial summary" : "Finance data unavailable"}
+                value={finance ? formatNaira(Number(finance.netPlatformRevenue ?? 0)) : "-"}
+                detail={finance ? period ? "Selected period" : "Month to date" : "Finance data unavailable"}
                 change={revenueChange}
                 isPositive={Number(change ?? 0) >= 0}
               />

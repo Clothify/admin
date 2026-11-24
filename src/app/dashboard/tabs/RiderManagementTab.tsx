@@ -402,7 +402,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
         onReject={() => openConfirm("reject", menuRider!)}
       />
 
-      {/* Documents (pending/rejected) — rider-specific 540px modal */}
+      {/* Documents (pending/rejected), rider-specific 540px modal */}
       <RiderDocumentsModal
         open={docsOpen && !!current}
         onClose={() => setDocsOpen(false)}

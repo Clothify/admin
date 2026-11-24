@@ -56,6 +56,15 @@ body {
   border-color: #98a2b3;
 }
 
+.dashboard-app .support-reply-input:focus,
+.dashboard-app .support-search-input:focus {
+  outline: none;
+}
+
+.dashboard-app .support-search-input:focus {
+  border-color: var(--color-slate-200);
+}
+
 :where(input[type="checkbox"], input[type="radio"]) {
   accent-color: var(--clothify-navy);
 }

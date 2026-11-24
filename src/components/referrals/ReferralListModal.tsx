@@ -36,7 +36,7 @@ export default function ReferralListModal({
             <div className="col-span-2 text-sm font-medium text-gray-600">Reward Earned</div>
           </div>
 
-          {/* Rows — NO borders, black text */}
+          {/* Rows, NO borders, black text */}
           <ul className="mt-3">
             {rows.map((r, i) => (
               <li

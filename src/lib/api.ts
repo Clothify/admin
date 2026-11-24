@@ -272,22 +272,22 @@ export function formatNaira(value: number | string | null | undefined) {
 }
 
 export function formatDate(value?: string | Date | null) {
-  if (!value) return "—";
+  if (!value) return "-";
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleDateString("en-GB");
 }
 
 export function formatTime(value?: string | Date | null) {
-  if (!value) return "—";
+  if (!value) return "-";
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
 export function formatNigerianPhone(value?: string | null) {
   const raw = String(value ?? "").trim();
-  if (!raw) return "—";
+  if (!raw) return "-";
   if (raw.startsWith("deleted_")) return raw;
 
   const compact = raw.replace(/[\s()-]/g, "");

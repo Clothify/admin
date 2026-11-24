@@ -46,9 +46,9 @@ function mapBackendUser(user: any): User {
   return {
     id: String(user.id),
     publicId: String(user.publicId || user.id),
-    fullName: user.fullName || user.profile?.fullName || user.userProfile?.fullName || "—",
-    phoneNumber: user.phone || "—",
-    email: user.email || "—",
+    fullName: user.fullName || user.profile?.fullName || user.userProfile?.fullName || "-",
+    phoneNumber: user.phone || "-",
+    email: user.email || "-",
     walletBalance: Number(user.walletBalance || 0),
     lastLoginDate: formatDate(user.lastLoginAt),
     isNew: isRecent(user.createdAt),
@@ -125,12 +125,12 @@ export async function fetchUserOrders(userId: string, group: "COMPLETED" | "ACTI
   return (res.items || []).map((order): UserOrderRow => {
     const status = order.status === "COMPLETED" ? "completed" : order.status === "CANCELLED" ? "cancelled" : "ongoing";
     const rider = (order.riderAssignments || [])?.[0]?.rider;
-    const riderName = rider?.fullName || [rider?.firstName, rider?.lastName].filter(Boolean).join(" ") || "—";
+    const riderName = rider?.fullName || [rider?.firstName, rider?.lastName].filter(Boolean).join(" ") || "-";
     return {
       id: order.id,
       type: order.deliveryType || order.washType || order.serviceType || "Laundry",
       amount: `₦${Number(order.totalAmount || order.amount || order.serviceAmount || 0).toLocaleString()}`,
-      merchant: order.merchant?.businessName || "—",
+      merchant: order.merchant?.businessName || "-",
       date: formatDate(order.createdAt),
       time: formatTime(order.createdAt),
       rider: riderName,

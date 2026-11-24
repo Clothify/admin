@@ -97,8 +97,8 @@ type Profile =
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Lagos",
 });
-const dateTime = (value: string | null) => value && Number.isFinite(Date.parse(value)) ? dateFormatter.format(new Date(value)) : "—";
-const label = (value?: string | null) => value ? value.toLowerCase().replaceAll("_", " ").replace(/^./, letter => letter.toUpperCase()) : "—";
+const dateTime = (value: string | null) => value && Number.isFinite(Date.parse(value)) ? dateFormatter.format(new Date(value)) : "-";
+const label = (value?: string | null) => value ? value.toLowerCase().replaceAll("_", " ").replace(/^./, letter => letter.toUpperCase()) : "-";
 const location = (address?: Location | null) => [address?.address, address?.city, address?.state].filter(Boolean).join(", ");
 const contact = (person: ReferralContact) => person.userProfile?.fullName || person.email || person.phone || "User";
 const publicDocumentUrl = (value: string) => /^https:\/\//i.test(value) ? value : undefined;
@@ -109,7 +109,7 @@ function FieldList({ items }: { items: [string, ReactNode][] }) {
       {items.map(([title, value]) => (
         <div className="min-w-0" key={title}>
           <dt className="text-sm text-slate-600">{title}</dt>
-          <dd className="mt-0.5 break-words font-medium text-slate-950">{value ?? "—"}</dd>
+          <dd className="mt-0.5 break-words font-medium text-slate-950">{value ?? "-"}</dd>
         </div>
       ))}
     </dl>
@@ -461,7 +461,7 @@ export default function AccountWorkspace({ directory, id }: { directory: Account
         <FieldList items={[
           ["Email", profile.directory === "merchants" ? profile.account.businessEmail || identity.email : identity.email],
           ["Phone", formatNigerianPhone(profile.directory === "merchants" ? profile.account.businessPhone || identity.phone : profile.directory === "riders" ? profile.account.phone || identity.phone : identity.phone)],
-          ["Address", location(profile.directory === "users" ? profile.account.profile : profile.account) || "—"],
+          ["Address", location(profile.directory === "users" ? profile.account.profile : profile.account) || "-"],
           ["Joined", formatDate(identity.createdAt)],
           ...(profile.directory === "users" ? [
             ["Last sign-in", dateTime(profile.account.lastLoginAt)],

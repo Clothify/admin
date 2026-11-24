@@ -220,6 +220,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     ["notifications", "support"].includes(activeTab.slug) ? "Engagement" :
     ["admin-team", "audit-log"].includes(activeTab.slug) ? "Administration" : "Workspace";
   const adminName = String(admin.displayName || user?.email || user?.phone || "Administrator");
+  const adminRoles = admin.roles.map(({ name }) => name).join(", ") || "Administrator";
 
   return (
     <DashboardStateProvider permissions={admin.permissions}>
@@ -245,9 +246,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <AdminNotificationBell />
               <div className="hidden h-7 w-px bg-[#E9EBEF] sm:block" aria-hidden="true" />
-              <div className="hidden max-w-[190px] text-right sm:block">
+              <div className="max-w-[100px] text-right sm:max-w-[220px]">
                 <p className="truncate text-[12px] font-semibold text-[#344054]">{adminName}</p>
-                <p className="text-[11px] text-[#98A1AE]">Administrator</p>
+                <p className="truncate text-[11px] text-[#667085]" title={adminRoles}>{adminRoles}</p>
               </div>
               <button
                 type="button"

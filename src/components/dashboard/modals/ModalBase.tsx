@@ -7,7 +7,7 @@ export default function ModalBase({
   open,
   onClose,
   width = 600,
-  z = 100, // <— stack level (confirm will pass a higher one)
+  z = 100, // Stack level (confirm will pass a higher one)
   children,
   hideClose = false,
   ariaLabel = "Dialog",

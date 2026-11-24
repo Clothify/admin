@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 
 type NavItem = { name: string; icon: React.ReactNode };
 
@@ -27,7 +28,7 @@ export default function Sidebar({
       aria-label="Primary navigation"
     >
       <div className="flex h-[76px] shrink-0 items-center gap-3 border-b border-[#F0F1F4] px-6">
-        <span aria-hidden="true" className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[#071D59] text-base font-semibold text-white">C</span>
+        <Image src="/logo.png" alt="" width={36} height={36} className="shrink-0 object-contain" />
         <div className="min-w-0">
           <div className="text-[15px] font-semibold tracking-[-0.025em] text-[#172033]">Clothify</div>
           <div className="mt-0.5 text-[11px] font-medium text-[#8A92A0]">ADMIN WORKSPACE</div>

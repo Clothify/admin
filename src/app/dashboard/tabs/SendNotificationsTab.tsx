@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Clock, Mail, Search, Send, Smartphone, X } from "lucide-react";
 import { apiFetch, formatDate, formatTime } from "@/lib/api";
@@ -240,7 +242,7 @@ export default function SendNotificationsTab() {
 
         <aside className="rounded-2xl border border-[#EAECF0] bg-white p-5">
           <h3 className="text-lg font-semibold text-[#101828]">Delivery preview</h3>
-          <div className="mt-4 rounded-2xl border border-[#EAECF0] bg-[#F9FAFB] p-4"><div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#071D59] font-semibold text-white">C</div><div><p className="font-semibold text-[#101828]">{title || "Notification title"}</p><p className="mt-1 whitespace-pre-wrap text-sm text-[#475467]">{body || "Your message preview will appear here."}</p><p className="mt-2 text-xs text-[#98A2B3]">Clothify · now</p></div></div></div>
+          <div className="mt-4 rounded-2xl border border-[#EAECF0] bg-[#F9FAFB] p-4"><div className="flex items-start gap-3"><Image src="/logo.png" alt="" width={40} height={40} className="shrink-0 object-contain" /><div><p className="font-semibold text-[#101828]">{title || "Notification title"}</p><p className="mt-1 whitespace-pre-wrap text-sm text-[#475467]">{body || "Your message preview will appear here."}</p><p className="mt-2 text-xs text-[#98A2B3]">Clothify · now</p></div></div></div>
           <div className="mt-5 space-y-3 text-sm text-[#475467]"><div className="flex justify-between"><span>Audience</span><strong className="text-[#101828]">{audienceMode === "ALL" ? "Everyone" : audienceMode === "ROLES" ? `${roles.length} type(s)` : `${selectedRecipients.length} selected`}</strong></div><div className="flex justify-between"><span>Channels</span><strong className="text-[#101828]">{channels.length}</strong></div><div className="flex justify-between"><span>Delivery</span><strong className="text-[#101828]">{scheduleEnabled ? "Scheduled" : "Immediate"}</strong></div></div>
         </aside>
       </div>

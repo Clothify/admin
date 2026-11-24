@@ -1,10 +1,12 @@
 "use client";
 import * as React from "react";
-import { History, UserMinus } from "lucide-react";
+import { History, UserMinus, UserPlus } from "lucide-react";
 import type { User } from "@/lib/users";
 import { formatNaira, formatNigerianPhone } from "@/lib/api";
 import CopyableCell from "./CopyableCell";
 import AccountProfileLink from "@/app/dashboard/AccountProfileLink";
+
+const actionClass = "grid size-9 shrink-0 place-items-center rounded-md border border-[#E7E9EE] bg-white text-[#071D59] transition-colors hover:bg-[#EEF1F5]";
 
 export default function UserTable({
   users,
@@ -34,7 +36,7 @@ export default function UserTable({
           <col className="w-[25%]" />
           <col className="w-[14%]" />
           <col className="w-[18%]" />
-          <col className="w-24" />
+          <col className="w-36" />
         </colgroup>
         <thead className="bg-gray-50">
           <tr>
@@ -118,32 +120,25 @@ export default function UserTable({
 
                 {/* actions: icon-only toggle */}
                 <td className="sticky right-0 z-10 bg-white px-3 py-3 text-sm group-hover/row:bg-gray-50" onClick={stop}>
-                  <div className="flex items-center justify-end gap-1">
-                  <AccountProfileLink directory="users" id={u.id} name={u.fullName} />
+                  <div className="flex items-center justify-end gap-1.5">
+                  <AccountProfileLink directory="users" id={u.id} name={u.fullName} className={actionClass} />
                   <button
                     type="button"
                     onClick={() => onRowOpenHistory(u)}
                     aria-label={`View order history for ${u.fullName}`}
-                    className="grid h-9 w-9 place-items-center rounded-md border border-gray-200 text-gray-500 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className={actionClass}
                     title="View order history"
                   >
-                    <History className="h-4 w-4" />
+                    <History aria-hidden="true" className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
                     onClick={() => onAction(u)}
                     aria-label={suspended ? "Activate user" : "Suspend user"}
-                    className={`h-9 w-9 grid place-items-center rounded-md border transition
-                      ${
-                        suspended
-                          // Suspended → red icon, tinted bg + red border (your reference look)
-                          ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
-                          // Active → transparent / natural button
-                          : "bg-transparent border-gray-200 text-gray-500 hover:bg-gray-50"
-                      }`}
+                    className={actionClass}
                     title={suspended ? "Activate user" : "Suspend user"}
                   >
-                    <UserMinus className="h-4 w-4" />
+                    {suspended ? <UserPlus aria-hidden="true" className="h-4 w-4" /> : <UserMinus aria-hidden="true" className="h-4 w-4" />}
                   </button>
                   </div>
                 </td>

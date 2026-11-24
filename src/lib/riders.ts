@@ -43,14 +43,14 @@ function fromBackendStatus(status?: string): RiderStatus {
 }
 
 export function mapBackendRider(r: any): Rider {
-  const fullName = r.fullName || [r.firstName, r.lastName].filter(Boolean).join(" ") || r.account?.email || "—";
+  const fullName = r.fullName || [r.firstName, r.lastName].filter(Boolean).join(" ") || r.account?.email || "-";
   return {
     id: String(r.id),
     publicId: String(r.publicId || r.account?.publicId || r.id),
     fullName,
-    phoneNumber: r.phone || r.account?.phone || "—",
-    email: r.email || r.account?.email || "—",
-    city: r.city || r.state || "—",
+    phoneNumber: r.phone || r.account?.phone || "-",
+    email: r.email || r.account?.email || "-",
+    city: r.city || r.state || "-",
     area: r.area || r.lga || undefined,
     address: r.address || undefined,
     lastLoginDate: formatDate(r.account?.lastLoginAt || r.lastLoginAt || r.updatedAt),

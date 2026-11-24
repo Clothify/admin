@@ -75,7 +75,7 @@ export default function OrderHistoryModal({
     <ModalBase open={open} onClose={onClose} width={860}>
       <div className="px-6 pt-6">
         <h3 className="text-xl font-semibold text-gray-900 text-center">
-          User order history{userName ? ` — ${userName}` : ""}
+          User order history{userName ? ` for ${userName}` : ""}
         </h3>
         <div className="mt-4 flex items-center justify-center gap-8 border-b border-gray-200">
           {tabs.map((t) => {

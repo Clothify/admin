@@ -27,7 +27,7 @@ export default function CopyableCell({
 }: CopyableCellProps) {
   const raw = String(copyValue ?? value ?? "").trim();
   const isDeleted = deletedValue(raw);
-  const display = isDeleted ? "Deleted user" : value || "—";
+  const display = isDeleted ? "Deleted user" : value || "-";
   const textToCopy = isDeleted ? "Deleted user" : raw;
   const [copied, setCopied] = React.useState(false);
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,7 +38,7 @@ export default function CopyableCell({
 
   const copy = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    if (!textToCopy || textToCopy === "—") return;
+    if (!textToCopy || textToCopy === "-") return;
     await navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     if (timer.current) clearTimeout(timer.current);
@@ -59,7 +59,7 @@ export default function CopyableCell({
       >
         {display}
       </span>
-      {textToCopy && textToCopy !== "—" && (
+      {textToCopy && textToCopy !== "-" && (
         <button
           type="button"
           onClick={copy}

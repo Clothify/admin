@@ -33,8 +33,8 @@ export default function RiderDocumentsModal({
             <h3 className="text-[24px] font-semibold text-gray-900 text-center">Documents</h3>
             <div className="mt-4 grid grid-cols-2 gap-4 text-[14px] text-[#0B1E5B]">
               <div className="text-left">
-                <div className="font-medium">{rider.city ?? "—"}, {rider.area ?? "—"}</div>
-                <div className="mt-1">{rider.address ?? "—"}</div>
+                <div className="font-medium">{rider.city ?? "-"}, {rider.area ?? "-"}</div>
+                <div className="mt-1">{rider.address ?? "-"}</div>
               </div>
               <div className="text-right font-medium">{rider.phoneNumber}</div>
             </div>

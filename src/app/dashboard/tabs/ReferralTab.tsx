@@ -215,7 +215,7 @@ function ReferralListModal({
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="py-3 px-3 text-gray-900"><CopyableCell value={r.name} label="referral name" /></td>
-                  <td className="py-3 px-3 text-gray-900">{r.email ? <CopyableCell value={r.email} label="email address" /> : '—'}</td>
+                  <td className="py-3 px-3 text-gray-900">{r.email ? <CopyableCell value={r.email} label="email address" /> : '-'}</td>
                   <td className="py-3 px-3 text-gray-900"><CopyableCell value={r.activeCount} label="active referral count" /></td>
                   <td className="py-3 px-3 text-gray-900"><CopyableCell value={naira2(r.rewardEarned)} label="estimated reward" /></td>
                 </tr>

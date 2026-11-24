@@ -125,7 +125,7 @@ export default function MerchantDocumentsModal({
             <div className="flex items-center gap-2 text-blue-900">
               <MapPin className="h-4 w-4" />
               <span className="font-medium">
-                {merchant.businessName}, {merchant.city ?? "—"}
+                {merchant.businessName}, {merchant.city ?? "-"}
               </span>
             </div>
             <a
