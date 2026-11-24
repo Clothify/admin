@@ -9,7 +9,7 @@ import { DashboardContentLoadingState } from "@/components/dashboard/ui/LoadingS
 import { apiFetch, formatNaira } from "@/lib/api";
 import { fetchFinanceSummary, type FinanceSummary } from "@/lib/finance";
 
-type Period = "" | "week" | "month";
+type Period = "" | "week" | "last-week" | "month";
 
 type DashboardMetrics = {
   range: { from: string; to: string } | null;
@@ -103,6 +103,7 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
           >
             <option value="">Latest available figures</option>
             <option value="week">This week</option>
+            <option value="last-week">Last week</option>
             <option value="month">This month</option>
           </select>
         </label>
