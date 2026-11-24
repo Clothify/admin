@@ -1,18 +1,20 @@
 'use client';
 
 import * as React from 'react';
-import { Pencil, Settings2, ChevronDown, X } from 'lucide-react';
+import { Pencil, Settings2, X } from 'lucide-react';
+import { DM_Sans } from 'next/font/google';
 import { apiFetch } from '@/lib/api';
 import CopyableCell from '@/components/dashboard/tables/CopyableCell';
 import ModalBase from '@/components/dashboard/modals/ModalBase';
+import { TableLoadingState } from '@/components/dashboard/ui/LoadingState';
+
+const dmSans = DM_Sans({ subsets: ['latin'] });
 
 /* ----------------------------- helpers / types ----------------------------- */
-type Period = 'Today' | 'This Week' | 'This Month' | 'This Year';
 type ReferralRow = {
   id: string;
   referrerName: string;
   referredName: string;
-  referredEmail?: string;
   dateISO: string;
   rewardAmount: number;
 };
@@ -26,9 +28,20 @@ type SettingsHistoryRow = {
 type ReferralListRow = {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   activeCount: number;
   rewardEarned: number;
+};
+type ReferralOverview = {
+  settings: { rewardAmount: number; history: SettingsHistoryRow[] };
+  totals: {
+    totalReferrals: number;
+    totalActive: number;
+    thisMonth: number;
+    estimatedReward: number;
+  };
+  referrals: ReferralRow[];
+  referrers: ReferralListRow[];
 };
 
 const naira0 = (v: number) =>
@@ -43,28 +56,6 @@ const fmtDT = (iso: string) => {
   const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   return `${date} (${time})`;
 };
-
-/* ---------------------------------- data ---------------------------------- */
-const MOCK_REWARD = 3000;
-
-const MOCK_REFERRALS: ReferralRow[] = [
-  { id: 'r1', referrerName: 'Ore Aisha Moro', referredName: 'Adams Abdullah', dateISO: '2024-12-12T21:35:00Z', rewardAmount: 1400 },
-  { id: 'r2', referrerName: 'Ore Aisha Moro', referredName: 'Adams Abdullah', dateISO: '2024-12-12T21:35:00Z', rewardAmount: 1400 },
-  { id: 'r3', referrerName: 'Ore Aisha Moro', referredName: 'Adams Abdullah', dateISO: '2024-12-12T21:35:00Z', rewardAmount: 1400 },
-  { id: 'r4', referrerName: 'Ore Aisha Moro', referredName: 'Adams Abdullah', dateISO: '2024-12-12T21:35:00Z', rewardAmount: 1400 },
-];
-
-const MOCK_HISTORY: SettingsHistoryRow[] = [
-  { id: 'h1', initialAmount: 1100, updatedAmount: 1500, adminName: 'Admin Doe', changedAtISO: '2024-10-14T14:32:00Z' },
-  { id: 'h2', initialAmount: 1500, updatedAmount: 2000, adminName: 'Admin Doe', changedAtISO: '2024-11-01T10:20:00Z' },
-  { id: 'h3', initialAmount: 2000, updatedAmount: 3000, adminName: 'Admin Doe', changedAtISO: '2024-12-02T08:05:00Z' },
-];
-
-const MOCK_LIST: ReferralListRow[] = [
-  { id: 'l1', name: 'Ore Aisha', email: 'oreoeraisha63@gmail.com', activeCount: 22, rewardEarned: 1500 },
-  { id: 'l2', name: 'John Smith', email: 'johnsmith@gmail.com', activeCount: 17, rewardEarned: 1200 },
-  { id: 'l3', name: 'Mercy Dan', email: 'mercydan@gmail.com', activeCount: 9, rewardEarned: 700 },
-];
 
 /* --------------------------------- modals --------------------------------- */
 function ModalShell({
@@ -171,6 +162,9 @@ function SettingsHistoryModal({
               </tr>
             </thead>
             <tbody>
+              {rows.length === 0 && (
+                <tr><td colSpan={4} className="py-4 px-3 text-gray-600">No settings history is available.</td></tr>
+              )}
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="py-3 px-3 text-gray-900"><CopyableCell value={naira0(r.initialAmount)} label="initial amount" /></td>
@@ -213,17 +207,17 @@ function ReferralListModal({
               <tr className="text-gray-500">
                 <th className="py-2 px-3 font-normal">Referral Name</th>
                 <th className="py-2 px-3 font-normal">Email Address</th>
-                <th className="py-2 px-3 font-normal">Number of active Referrals</th>
-                <th className="py-2 px-3 font-normal">Reward Earned</th>
+                <th className="py-2 px-3 font-normal">Active referrals shown</th>
+                <th className="py-2 px-3 font-normal">Estimated reward</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="hover:bg-gray-50">
                   <td className="py-3 px-3 text-gray-900"><CopyableCell value={r.name} label="referral name" /></td>
-                  <td className="py-3 px-3 text-gray-900"><CopyableCell value={r.email} label="email address" /></td>
+                  <td className="py-3 px-3 text-gray-900">{r.email ? <CopyableCell value={r.email} label="email address" /> : '—'}</td>
                   <td className="py-3 px-3 text-gray-900"><CopyableCell value={r.activeCount} label="active referral count" /></td>
-                  <td className="py-3 px-3 text-gray-900"><CopyableCell value={naira0(r.rewardEarned)} label="reward earned" /></td>
+                  <td className="py-3 px-3 text-gray-900"><CopyableCell value={naira2(r.rewardEarned)} label="estimated reward" /></td>
                 </tr>
               ))}
             </tbody>
@@ -238,86 +232,65 @@ function ReferralListModal({
 
 type HeaderProps = {
   reward: number;
-  totals: { totalReferrals: number; totalPaid: number; thisMonth: number; sub?: string };
+  totals: ReferralOverview['totals'];
   onOpenEdit: () => void;
   onOpenHistory: () => void;
   onOpenList: () => void;
 };
 
-export function ReferralHeader({
+function ReferralHeader({
   reward,
   totals,
   onOpenEdit,
   onOpenHistory,
   onOpenList,
 }: HeaderProps) {
-  const [periodA, setPeriodA] = React.useState<Period>('This Month');
-  const [periodB, setPeriodB] = React.useState<Period>('This Month');
-  const [periodC, setPeriodC] = React.useState<Period>('This Month');
-
   return (
-    <div className="space-y-5">
-      {/* Top line: title + history button */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-[22px] font-semibold text-gray-900">Referral</h1>
-
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-4">
+        <div className="flex items-center gap-2">
+          <div>
+            <div className="text-sm text-gray-600">Referral reward rate</div>
+            <div className="text-xl font-semibold text-[#0B1E53]">{naira2(reward)}</div>
+          </div>
+          <button
+            type="button"
+            aria-label="Edit referral reward"
+            onClick={onOpenEdit}
+            className="grid h-9 w-9 place-items-center rounded-md text-[#0B1E53] hover:bg-slate-100"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        </div>
         <button
           onClick={onOpenHistory}
-          className="inline-flex items-center text-black gap-2 h-10 rounded-lg bg-white px-3 py-2 text-sm ring-1 ring-black/30 hover:bg-gray-50"
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-3 text-sm text-[#0B1E53] hover:bg-gray-50"
           type="button"
         >
-          <Settings2 className="h-4 w-4 text-black" />
-          View Settings History
+          <Settings2 className="h-4 w-4" />
+          Settings history
         </button>
       </div>
 
-      {/* Reward tile row (left) */}
-      <div className="flex justify-between">
-        <div className="w-[240px]">
-          <div className="rounded-xl border border-[#E7E9EE] bg-[#F7F8FA] p-4">
-            <div className="text-sm text-gray-800">Referral reward</div>
-            <div className="mt-1 flex items-center justify-between">
-              <div className="text-[22px] font-semibold text-gray-900">{naira2(reward)}</div>
-              <button
-                type="button"
-                aria-label="Edit referral reward"
-                onClick={onOpenEdit}
-                className="grid h-9 w-9 place-items-center rounded-md bg-slate-200 text-slate-800"
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Metrics with dotted separators (no cards) */}
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {/* Left spacer/divider to align with screenshot */}
-
-        <div className="contents">
+      <div>
+        <p className="text-sm text-gray-600">Figures cover up to 200 of the latest referrals.</p>
+        <div className="mt-2 grid divide-y divide-gray-100 sm:grid-cols-3 sm:gap-x-4 sm:divide-y-0">
           <MetricInline
-            label="Total Referrals"
+            label="Referrals shown"
             value={totals.totalReferrals.toLocaleString()}
-            period={periodA}
-            onPeriod={setPeriodA}
-          />
-
-          <MetricInline
-            label="Total Rewards Paid Out"
-            value={naira0(totals.totalPaid)}
-            sub={totals.sub ?? '0 new sign up'}
-            period={periodB}
-            onPeriod={setPeriodB}
-          />
-
-          <MetricInline
-            label="Total Referrals"
-            value={totals.thisMonth.toLocaleString()}
-            rightLink="See List"
+            rightLink="See referrers"
             onRightLink={onOpenList}
-            period={periodC}
-            onPeriod={setPeriodC}
+          />
+
+          <MetricInline
+            label="Estimated referral rewards"
+            value={naira2(totals.estimatedReward)}
+            sub={`Active referrals shown (${totals.totalActive.toLocaleString()}) at the current rate`}
+          />
+
+          <MetricInline
+            label="Referrals this month"
+            value={totals.thisMonth.toLocaleString()}
           />
         </div>
       </div>
@@ -327,45 +300,28 @@ export function ReferralHeader({
 
 /* ---------------------------------- page ---------------------------------- */
 export default function ReferralTab() {
-  const [reward, setReward] = React.useState<number>(0);
-  const [referrals, setReferrals] = React.useState<ReferralRow[]>([]);
-  const [referrers, setReferrers] = React.useState<ReferralListRow[]>([]);
-  const [history, setHistory] = React.useState<SettingsHistoryRow[]>([]);
-  const [totals, setTotals] = React.useState({ totalReferrals: 0, totalPaid: 0, thisMonth: 0, sub: '0 active referrals' });
+  const [overview, setOverview] = React.useState<ReferralOverview | null>(null);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState<string | null>(null);
 
-  const loadReferrals = React.useCallback(() => {
-    apiFetch<any>('/admin/referrals')
-      .then((data) => {
-        setReward(Number(data?.settings?.rewardAmount || 0));
-        setReferrals((data?.referrals || []).map((r: any) => ({
-          id: r.id,
-          referrerName: r.referrerName,
-          referredName: r.referredName,
-          referredEmail: r.referredEmail,
-          dateISO: r.dateISO,
-          rewardAmount: Number(r.rewardAmount || data?.settings?.rewardAmount || 0),
-        })));
-        setReferrers((data?.referrers || []).map((r: any) => ({ id: r.id, name: r.name, email: r.email || '—', activeCount: Number(r.activeCount || 0), rewardEarned: Number(r.rewardEarned || 0) })));
-        setHistory(data?.settings?.history || []);
-        setTotals({
-          totalReferrals: Number(data?.totals?.totalReferrals || 0),
-          totalPaid: Number(data?.totals?.estimatedReward || 0),
-          thisMonth: Number(data?.totals?.thisMonth || 0),
-          sub: `${Number(data?.totals?.totalActive || 0).toLocaleString()} active referrals`,
-        });
-      })
-      .catch((err) => setMessage(err?.message || 'Unable to load referrals'));
+  const loadReferrals = React.useCallback(async () => {
+    setLoadError(null);
+    try {
+      setOverview(await apiFetch<ReferralOverview>('/admin/referrals'));
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Unable to load referrals');
+    }
   }, []);
 
-  React.useEffect(loadReferrals, [loadReferrals]);
+  React.useEffect(() => {
+    void loadReferrals();
+  }, [loadReferrals]);
 
   const updateReward = async (amount: number) => {
     try {
-      const res = await apiFetch<any>('/admin/referrals/settings', { method: 'PUT', body: JSON.stringify({ rewardAmount: amount }) });
-      setReward(Number(res.rewardAmount || amount));
+      await apiFetch('/admin/referrals/settings', { method: 'PUT', body: JSON.stringify({ rewardAmount: amount }) });
       setMessage('Referral reward updated.');
-      loadReferrals();
+      await loadReferrals();
     } catch (err: any) {
       setMessage(err?.message || 'Unable to update referral reward');
     }
@@ -376,17 +332,35 @@ export default function ReferralTab() {
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [listOpen, setListOpen] = React.useState(false);
 
+  const loadErrorMessage = loadError && (
+    <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+      <span>{loadError}</span>
+      <button type="button" onClick={loadReferrals} className="font-medium text-[#0B1E53] underline">Retry</button>
+    </div>
+  );
+
+  if (!overview) {
+    return (
+      <div className={`${dmSans.className} rounded-xl bg-white px-6 py-5`}>
+        {loadErrorMessage || <TableLoadingState columns={4} label="Loading referrals" />}
+      </div>
+    );
+  }
+
+  const { settings, totals, referrals, referrers } = overview;
+
   return (
-    <div className="space-y-6 bg-white rounded-xl px-6 py-5">
+    <div className={`${dmSans.className} space-y-4 rounded-xl bg-white px-6 py-5`}>
       <ReferralHeader
-        reward={reward}
+        reward={settings.rewardAmount}
         totals={totals}
         onOpenEdit={() => setEditOpen(true)}
         onOpenHistory={() => setHistoryOpen(true)}
         onOpenList={() => setListOpen(true)}
       />
 
-      {message && <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">{message}</div>}
+      {message && <p role="status" className="text-sm text-gray-700">{message}</p>}
+      {loadErrorMessage}
 
       {/* list */}
       <div>
@@ -399,10 +373,13 @@ export default function ReferralTab() {
                   <th className="py-3 px-4 font-normal">Referrer Name</th>
                   <th className="py-3 px-4 font-normal">Referred User Name</th>
                   <th className="py-3 px-4 font-normal">Referral Date</th>
-                  <th className="py-3 px-4 font-normal">Reward Amount</th>
+                  <th className="py-3 px-4 font-normal">Current reward rate</th>
                 </tr>
               </thead>
               <tbody>
+                {referrals.length === 0 && (
+                  <tr><td colSpan={4} className="py-4 px-4 text-gray-600">No referrals yet.</td></tr>
+                )}
                 {referrals.map((r) => (
                   <tr
                     key={r.id}
@@ -412,7 +389,7 @@ export default function ReferralTab() {
                     <td className="py-3 px-4 text-gray-900"><CopyableCell value={r.referrerName} label="referrer name" /></td>
                     <td className="py-3 px-4 text-gray-900"><CopyableCell value={r.referredName} label="referred user name" /></td>
                     <td className="py-3 px-4 text-gray-900"><CopyableCell value={fmtDT(r.dateISO)} label="referral date" /></td>
-                    <td className="py-3 px-4 text-gray-900"><CopyableCell value={naira0(r.rewardAmount)} label="reward amount" /></td>
+                    <td className="py-3 px-4 text-gray-900"><CopyableCell value={naira2(r.rewardAmount)} label="current reward rate" /></td>
                   </tr>
                 ))}
               </tbody>
@@ -424,14 +401,14 @@ export default function ReferralTab() {
       {/* modals */}
       <EditRewardModal
         open={editOpen}
-        current={reward}
+        current={settings.rewardAmount}
         onClose={() => setEditOpen(false)}
         onUpdate={updateReward}
       />
       <SettingsHistoryModal
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
-        rows={history}
+        rows={settings.history}
       />
       <ReferralListModal
         open={listOpen}
@@ -450,90 +427,26 @@ function MetricInline({
   sub,
   rightLink,
   onRightLink,
-  period,
-  onPeriod,
 }: {
   label: string;
   value: string;
   sub?: string;
   rightLink?: string;
   onRightLink?: () => void;
-  period: Period;
-  onPeriod: (p: Period) => void;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border border-dashed border-gray-200 p-4">
-      <div className="flex items-center justify-between text-sm text-gray-600">
-        <span>{label}</span>
-        <PeriodPill value={period} onChange={onPeriod} />
-      </div>
-      <div className="mt-1 text-[22px] font-semibold text-gray-900">{value}</div>
-      <div className="mt-1 flex items-center justify-between">
-        <span className="text-xs text-gray-500">{sub}</span>
-        {rightLink && (
-          <button
-            type="button"
-            onClick={onRightLink}
-            className="text-xs text-sky-700 underline underline-offset-2"
-          >
-            {rightLink}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PeriodPill({
-  value,
-  onChange,
-}: {
-  value: Period;
-  onChange: (p: Period) => void;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const ref = React.useRef<HTMLDivElement | null>(null);
-
-  React.useEffect(() => {
-    const click = (e: MouseEvent) => {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener('click', click);
-    return () => window.removeEventListener('click', click);
-  }, []);
-
-  const items: Period[] = ['Today', 'This Week', 'This Month', 'This Year'];
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-gray-700"
-      >
-        {value}
-        <ChevronDown className="h-4 w-4" />
-      </button>
-
-      {open && (
-        <div className="absolute right-0 mt-1 w-40 rounded-md border border-gray-200 bg-white shadow-lg z-10">
-          {items.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => {
-                onChange(p);
-                setOpen(false);
-              }}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                p === value ? 'text-indigo-700 font-medium' : 'text-gray-700'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+    <div className="min-w-0 py-2">
+      <div className="text-sm text-gray-600">{label}</div>
+      <div className="mt-1 text-[22px] font-semibold text-[#0B1E53]">{value}</div>
+      {sub && <p className="mt-1 text-xs text-gray-600">{sub}</p>}
+      {rightLink && (
+        <button
+          type="button"
+          onClick={onRightLink}
+          className="mt-1 text-xs text-[#0B1E53] underline underline-offset-2"
+        >
+          {rightLink}
+        </button>
       )}
     </div>
   );
