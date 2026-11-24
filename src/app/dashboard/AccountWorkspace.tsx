@@ -41,7 +41,26 @@ type Customer = Identity & {
   };
 };
 type ReferralContact = { id: string; email: string | null; phone: string | null; userProfile: { fullName: string } | null };
-type Order = { id: string; orderNumber: string; status: string; totalAmount: number | null; createdAt: string; merchant: { businessName: string } | null };
+type Order = {
+  id: string;
+  orderNumber: string;
+  status: string;
+  totalAmount: number | null;
+  createdAt: string;
+  merchant?: { businessName: string } | null;
+  user?: { userProfile: { fullName: string } | null };
+};
+type Assignment = {
+  id: string;
+  role: string;
+  status: string;
+  assignedAt: string;
+  acceptedAt: string | null;
+  completedAt: string | null;
+  expiresAt: string | null;
+  riderPayout: number | null;
+  order: { orderNumber: string; merchant: { businessName: string } };
+};
 type Partner = Location & {
   account: Identity;
   status: "VERIFIED" | "PENDING" | "REJECTED" | "SUSPENDED";
@@ -123,48 +142,126 @@ function Records({ rows, empty }: { rows: { id: string; primary: ReactNode; deta
   );
 }
 
-function CustomerOrders({ id }: { id: string }) {
-  const [filter, setFilter] = useState({ group: "", page: 1 });
-  const [orders, setOrders] = useState<ApiList<Order> | null>(null);
+function ProfileHistory({ directory, id }: { directory: AccountDirectory; id: string }) {
+  const assignments = directory === "riders";
+  const historyType = assignments ? "assignments" : "orders";
+  const [filter, setFilter] = useState({ group: "", role: "", status: "", search: "", page: 1 });
+  const [reference, setReference] = useState("");
+  const [history, setHistory] = useState<ApiList<Order | Assignment> | null>(null);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     let current = true;
-    setOrders(null);
+    setHistory(null);
     setError("");
-    apiFetch<ApiList<Order>>(`/admin/users/${encodeURIComponent(id)}/orders`, {
-      query: { page: filter.page, limit: 8, group: filter.group || undefined },
+    apiFetch<ApiList<Order | Assignment>>(`/admin/${directory}/${encodeURIComponent(id)}/${historyType}`, {
+      query: {
+        page: filter.page,
+        limit: 8,
+        group: filter.group || undefined,
+        role: filter.role || undefined,
+        status: filter.status || undefined,
+        search: filter.search || undefined,
+      },
     }).then(result => {
-      if (current) setOrders(result);
+      if (!current) return;
+      const lastPage = Math.max(1, Math.ceil(result.total / result.limit));
+      if (filter.page > lastPage) setFilter({ ...filter, page: lastPage });
+      else setHistory(result);
     }).catch((reason: unknown) => {
-      if (current) setError(reason instanceof Error ? reason.message : "Unable to load orders.");
+      if (current) setError(reason instanceof Error ? reason.message : `Unable to load ${historyType}.`);
     });
     return () => { current = false; };
-  }, [id, filter, retry]);
+  }, [id, directory, historyType, filter, retry]);
+
+  const rows = history?.items.map(record => {
+    if ("role" in record) {
+      return {
+        id: record.id,
+        primary: record.order.orderNumber,
+        detail: (
+          <>
+            <span className="block">{[label(record.role), label(record.status), record.order.merchant.businessName].join(" · ")}</span>
+            <span className="block">
+              {[
+                `Assigned ${dateTime(record.assignedAt)}`,
+                record.acceptedAt && `Accepted ${dateTime(record.acceptedAt)}`,
+                record.completedAt && `Completed ${dateTime(record.completedAt)}`,
+                record.status === "EXPIRED" && record.expiresAt && `Expired ${dateTime(record.expiresAt)}`,
+              ].filter(Boolean).join(" · ")}
+            </span>
+          </>
+        ),
+        trailing: record.riderPayout == null ? undefined : `Rider payout ${formatNaira(record.riderPayout)}`,
+      };
+    }
+    const contact = directory === "merchants" ? record.user?.userProfile?.fullName : record.merchant?.businessName;
+    return {
+      id: record.id,
+      primary: record.orderNumber || record.id,
+      detail: [contact, dateTime(record.createdAt), label(record.status)].filter(Boolean).join(" · "),
+      trailing: record.totalAmount == null ? undefined : `Order total ${formatNaira(record.totalAmount)}`,
+    };
+  });
+
   return (
     <div className="mt-5 border-t border-slate-100 pt-4">
-      <label className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-700">
-        Order history
-        <select value={filter.group} onChange={event => setFilter({ group: event.target.value, page: 1 })} className={controlClass}>
-          <option value="">All orders</option>
-          <option value="ACTIVE">Active</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
-      </label>
+      <h3 className="mb-3 text-sm font-semibold text-slate-800">{assignments ? "Assignment history" : "Order history"}</h3>
+      <div className="flex flex-wrap items-center gap-2">
+        {assignments ? <>
+          <select aria-label="Assignment leg" value={filter.role} onChange={event => setFilter({ ...filter, role: event.target.value, page: 1 })} className={controlClass}>
+            <option value="">All legs</option>
+            <option value="PICKUP">Pickup</option>
+            <option value="DELIVERY">Delivery</option>
+          </select>
+          <select aria-label="Assignment status" value={filter.status} onChange={event => setFilter({ ...filter, status: event.target.value, page: 1 })} className={controlClass}>
+            <option value="">All statuses</option>
+            {["OFFERED", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED", "EXPIRED"].map(status => (
+              <option key={status} value={status}>{label(status)}</option>
+            ))}
+          </select>
+        </> : (
+          <select aria-label="Order status" value={filter.group} onChange={event => setFilter({ ...filter, group: event.target.value, page: 1 })} className={controlClass}>
+            <option value="">All orders</option>
+            <option value="ACTIVE">Active</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        )}
+        {directory !== "users" && (
+          <form aria-label={`Search ${historyType}`} className="flex min-w-0 flex-wrap items-center gap-2" onSubmit={event => {
+            event.preventDefault();
+            setFilter({ ...filter, search: reference.trim(), page: 1 });
+          }}>
+            <input
+              aria-label="Order reference"
+              placeholder="Order reference"
+              value={reference}
+              onChange={event => setReference(event.target.value)}
+              maxLength={100}
+              className="min-h-9 w-40 max-w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm"
+            />
+            <button type="submit" className={controlClass}>Search</button>
+            {filter.search && <button type="button" className={controlClass} onClick={() => {
+              setReference("");
+              setFilter({ ...filter, search: "", page: 1 });
+            }}>Clear search</button>}
+          </form>
+        )}
+      </div>
       {error ? (
         <div role="alert" className="mt-3 flex flex-wrap items-center gap-3 text-sm"><span>{error}</span><button type="button" onClick={() => setRetry(retry + 1)} className={controlClass}>Retry</button></div>
-      ) : orders ? (
-        <>
-          <Records empty="No orders in this view." rows={orders.items.map(order => ({
-            id: order.id,
-            primary: order.orderNumber || order.id,
-            detail: [order.merchant?.businessName, dateTime(order.createdAt), label(order.status)].filter(Boolean).join(" · "),
-            trailing: order.totalAmount == null ? undefined : formatNaira(order.totalAmount),
-          }))} />
-          {orders.total > orders.limit && <Pagination page={filter.page} totalPages={Math.ceil(orders.total / orders.limit)} onChange={page => setFilter({ ...filter, page })} />}
-        </>
-      ) : <TableLoadingState label="Loading order history" rows={3} columns={3} />}
+      ) : history && rows ? (
+        <div className="mt-3">
+          <Records empty={`No ${historyType} found.`} rows={rows} />
+          {history.total > history.limit && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+              <p className="text-sm text-slate-600">{history.total.toLocaleString()} {historyType}</p>
+              <Pagination page={filter.page} totalPages={Math.ceil(history.total / history.limit)} onChange={page => setFilter({ ...filter, page })} />
+            </div>
+          )}
+        </div>
+      ) : <TableLoadingState className="mt-3" label={`Loading ${assignments ? "assignment" : "order"} history`} rows={3} columns={3} />}
     </div>
   );
 }
@@ -177,7 +274,7 @@ function CustomerSections({ customer, id, canViewOrders }: { customer: Customer;
           ["Total", customer.orders.total], ["Active", customer.orders.active],
           ["Completed", customer.orders.completed], ["Cancelled", customer.orders.cancelled],
         ]} />
-        {canViewOrders && <CustomerOrders id={id} />}
+        {canViewOrders && <ProfileHistory directory="users" id={id} />}
       </ProfileSection>
       <ProfileSection id="wallet" title="Wallet and payment methods">
         <FieldList items={[
@@ -212,14 +309,22 @@ function CustomerSections({ customer, id, canViewOrders }: { customer: Customer;
   );
 }
 
-function PartnerSections({ profile, id, canReview }: { profile: Extract<Profile, { directory: "merchants" | "riders" }>; id: string; canReview: boolean }) {
+function PartnerSections({ profile, id, canReview, canViewOrders }: {
+  profile: Extract<Profile, { directory: "merchants" | "riders" }>;
+  id: string;
+  canReview: boolean;
+  canViewOrders: boolean;
+}) {
   const { account } = profile;
   const activity = profile.directory === "merchants" ? profile.account.orders : profile.account.deliveries;
   const [updatesOpen, setUpdatesOpen] = useState(false);
   return (
     <>
-      <ProfileSection id="activity" title={profile.directory === "merchants" ? "Orders" : "Completed assignments"}>
-        <FieldList items={[["Today", activity.today], ["This week", activity.thisWeek]]} />
+      <ProfileSection id="activity" title={profile.directory === "merchants" ? "Orders" : "Assignments"}>
+        <FieldList items={profile.directory === "merchants"
+          ? [["Today", activity.today], ["This week", activity.thisWeek]]
+          : [["Completed today", activity.today], ["Completed this week", activity.thisWeek]]} />
+        {canViewOrders && <ProfileHistory directory={profile.directory} id={id} />}
       </ProfileSection>
       <ProfileSection id="earnings" title="Earnings and withdrawals">
         <FieldList items={[
@@ -374,7 +479,7 @@ export default function AccountWorkspace({ directory, id }: { directory: Account
       </ProfileSection>
       {profile.directory === "users"
         ? <CustomerSections customer={profile.account} id={id} canViewOrders={permissions.includes("orders.read")} />
-        : <PartnerSections profile={profile} id={id} canReview={permissions.includes("merchants.review")} />}
+        : <PartnerSections profile={profile} id={id} canReview={permissions.includes("merchants.review")} canViewOrders={permissions.includes("orders.read")} />}
       {confirm && (
         <ModalBase open onClose={() => { if (!saving) setConfirm(false); }} width={440} ariaLabel={action + " account"}>
           <div className="space-y-4 p-5">
