@@ -17,8 +17,6 @@ export type UiOrder = {
   state: string;
   requestDate: string;
   requestTime: string;
-  merchantRate: number;
-  deliveryRate: number;
   transactionId: string;
   rider?: string;
   riderPhone?: string;
@@ -85,9 +83,7 @@ export function mapBackendOrder(order: any): UiOrder {
     state: order.pickupState || order.merchant?.state || "-",
     requestDate: formatDate(createdAt),
     requestTime: formatTime(createdAt),
-    merchantRate: Number(order.serviceAmount || order.merchantRate || 0),
-    deliveryRate: Number(order.logisticsFee || order.deliveryFee || order.deliveryRate || 0),
-    transactionId: order.paymentReference || order.orderNumber || order.id,
+    transactionId: order.paymentReference || "",
     rider: riderName,
     riderPhone: riderAssignment?.phone,
     riderAssignments: assignments,
