@@ -75,7 +75,7 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
   const createdOrders = Number((period ? metrics?.orders?.inPeriod : metrics?.orders?.today) ?? 0);
   const openComplaints = Number(metrics?.support?.openComplaints ?? 0);
   const show = (value: number) => metrics ? value.toLocaleString("en-NG") : "-";
-  const change = finance?.changes?.netPlatformRevenue;
+  const change = finance?.changes?.recordedPlatformRevenue;
   const revenueChange = typeof change === "number" && Number.isFinite(change)
     ? (change >= 0 ? "+" : "") + change.toFixed(1) + "%"
     : undefined;
@@ -143,8 +143,8 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
             {canViewFinance ? (
               <MetricCard
                 icon={<Landmark className="h-[18px] w-[18px]" />}
-                title="Net platform revenue"
-                value={finance ? formatNaira(Number(finance.netPlatformRevenue ?? 0)) : "-"}
+                title="Recorded order revenue"
+                value={typeof finance?.recordedPlatformRevenue === "number" ? formatNaira(finance.recordedPlatformRevenue) : "-"}
                 detail={finance ? period ? "Selected period" : "Month to date" : "Finance data unavailable"}
                 change={revenueChange}
                 isPositive={Number(change ?? 0) >= 0}

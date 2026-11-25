@@ -14,10 +14,13 @@ export type FinanceSummary = {
   riderPayouts: number;
   refunds: number;
   netPlatformRevenue: number;
+  recordedPlatformRevenue?: number;
+  walletRefundCredits?: number;
   paidOrders: number;
   changes: {
     grossVolume: number;
     netPlatformRevenue: number;
+    recordedPlatformRevenue?: number;
     paidOrders: number;
   };
   pendingWithdrawals: { count: number; amount: number };
@@ -30,6 +33,7 @@ export type RevenuePoint = {
   riderPayouts: number;
   refunds: number;
   netPlatformRevenue: number;
+  recordedPlatformRevenue?: number;
 };
 
 export type Reconciliation = {
@@ -37,6 +41,21 @@ export type Reconciliation = {
   walletLiabilities: { users: number; merchants: number; riders: number };
   reservedWithdrawals: { count: number; amount: number };
   anomalies: { negativeWallets: number; staleWithdrawals: number };
+};
+
+export type AccountReconciliation = {
+  owner: "USER" | "MERCHANT" | "RIDER";
+  accountId: string;
+  currency: "NGN";
+  unit: "KOBO";
+  storedBalance: number;
+  openingBalance: number | null;
+  openingBalanceVerified: false;
+  reconstructedFromUnverifiedOpening: number | null;
+  pageSize: number;
+  nextCursor: string | null;
+  status: "DISCREPANCY" | "UNVERIFIABLE" | "SNAPSHOT_CONSISTENT_OPENING_UNVERIFIED";
+  anomalies: { kind: string; transactionId?: string }[];
 };
 
 export type Withdrawal = {
@@ -83,6 +102,13 @@ export function fetchRevenueSeries(range: Range) {
 
 export function fetchReconciliation() {
   return apiFetch<Reconciliation>("/admin/finance/reconciliation");
+}
+
+export function fetchAccountReconciliation(owner: AccountReconciliation["owner"], accountId: string, after?: string) {
+  return apiFetch<AccountReconciliation>(
+    `/admin/finance/reconciliation/accounts/${owner}/${encodeURIComponent(accountId)}`,
+    { query: after ? { after } : {} },
+  );
 }
 
 export function fetchWithdrawals(params: Range & {
