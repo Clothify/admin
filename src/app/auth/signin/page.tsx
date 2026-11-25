@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
@@ -13,6 +13,9 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => setReady(true), []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -47,7 +50,7 @@ export default function SignIn() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form method="post" onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-[13px] text-red-700">
                 {error}
@@ -64,6 +67,7 @@ export default function SignIn() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="Enter your email or phone number"
                 required
+                disabled={!ready}
                 className="h-11 w-full rounded-lg border border-[#DDE1E7] bg-white px-3.5 text-sm text-[#172033] outline-none placeholder:text-[#A0A7B3] focus:border-[#98A2B3] focus:ring-0"
               />
             </div>
@@ -79,6 +83,7 @@ export default function SignIn() {
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Enter your password"
                   required
+                  disabled={!ready}
                   className="h-11 w-full rounded-lg border border-[#DDE1E7] bg-white py-2 pl-3.5 pr-11 text-sm text-[#172033] outline-none placeholder:text-[#A0A7B3] focus:border-[#98A2B3] focus:ring-0"
                 />
                 <button
@@ -93,7 +98,7 @@ export default function SignIn() {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !ready}
               className="mt-2 flex h-11 w-full items-center justify-center rounded-lg bg-[#071D59] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#102D72] disabled:cursor-wait disabled:opacity-60"
             >
               {loading ? "Signing in…" : "Sign in"}
