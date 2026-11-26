@@ -8,7 +8,7 @@ export type MerchantDocument = {
   url: string;
   status: "PENDING" | "VERIFIED" | "REJECTED" | string;
   createdAt?: string;
-  metadata?: { reviewReason?: string | null };
+  metadata?: { reviewReason?: string | null; cacRegisteredName?: string | null };
 };
 
 export type Merchant = {
@@ -157,9 +157,9 @@ export async function setMerchantStatus(id: string, status: MerchantStatus, reas
   });
 }
 
-export async function reviewMerchantDocument(documentId: string, status: "APPROVED" | "VERIFIED" | "REJECTED", reason?: string) {
+export async function reviewMerchantDocument(documentId: string, status: "APPROVED" | "VERIFIED" | "REJECTED", reason?: string, cacRegisteredName?: string) {
   return apiFetch(`/admin/documents/${documentId}/status`, {
     method: "PATCH",
-    body: JSON.stringify({ status, reason }),
+    body: JSON.stringify({ status, reason, cacRegisteredName }),
   });
 }

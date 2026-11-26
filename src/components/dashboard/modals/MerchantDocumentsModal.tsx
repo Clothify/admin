@@ -31,11 +31,13 @@ export default function MerchantDocumentsModal({
   const [lightbox, setLightbox] = React.useState<string | null>(null);
   const [reviewed, setReviewed] = React.useState<Record<string, string>>({});
   const [reason, setReason] = React.useState<Record<string, string>>({});
+  const [cacRegisteredName, setCacRegisteredName] = React.useState("");
   const [busy, setBusy] = React.useState<string | null>(null);
   const [error, setError] = React.useState("");
   React.useEffect(() => {
     setReviewed({});
     setReason({});
+    setCacRegisteredName(merchant?.documents?.find((d) => d.type === "MERCHANT_CAC")?.metadata?.cacRegisteredName || "");
     setError("");
   }, [merchant?.id, open]);
   if (!open || !merchant) return null;
@@ -59,6 +61,10 @@ export default function MerchantDocumentsModal({
         .length >= 4 &&
       docs.some((d) => d.type === "MERCHANT_COVER_IMAGE" && isApproved(d));
   const review = async (id: string, status: "APPROVED" | "REJECTED") => {
+    if (id === primaryDoc?.id && status === "APPROVED" && !cacRegisteredName.trim()) {
+      setError("Enter the registered name exactly as shown on the CAC document.");
+      return;
+    }
     if (status === "REJECTED" && !reason[id]?.trim()) {
       setError("Enter a reason for this image rejection.");
       return;
@@ -66,7 +72,7 @@ export default function MerchantDocumentsModal({
     setBusy(id);
     setError("");
     try {
-      await reviewMerchantDocument(id, status, reason[id]);
+      await reviewMerchantDocument(id, status, reason[id], id === primaryDoc?.id && status === "APPROVED" ? cacRegisteredName.trim() : undefined);
       setReviewed((prev) => ({ ...prev, [id]: status }));
     } catch (e: any) {
       setError(toUserError(e, "Could not save review. Please retry."));
@@ -176,6 +182,18 @@ export default function MerchantDocumentsModal({
                       <p className="text-sm text-red-700 mt-2">
                         {doc.metadata.reviewReason}
                       </p>
+                    ) : null}
+                    {doc.type === "MERCHANT_CAC" ? (
+                      <label className="block text-sm mt-3 text-gray-700">
+                        Registered name on CAC
+                        <input
+                          aria-label="Registered name on CAC"
+                          className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-gray-900"
+                          value={cacRegisteredName}
+                          onChange={(e) => setCacRegisteredName(e.target.value)}
+                          placeholder="Enter the legal name on the certificate"
+                        />
+                      </label>
                     ) : null}
                     <label className="block text-sm mt-3">
                       Replacement reason
