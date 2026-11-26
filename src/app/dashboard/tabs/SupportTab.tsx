@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toUserError } from "@/lib/api";
 import {
   ArrowLeft,
   Bike,
@@ -317,7 +318,7 @@ export default function SupportTab() {
         );
         setError(null);
       })
-      .catch((reason) => setError(reason?.message || "Unable to load support tickets"))
+      .catch((reason) => setError(toUserError(reason, "Unable to load support tickets")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -328,7 +329,7 @@ export default function SupportTab() {
         setMessages(ticketToMessages(ticket));
         setError(null);
       })
-      .catch((reason) => setError(reason?.message || "Unable to load ticket details"));
+      .catch((reason) => setError(toUserError(reason, "Unable to load ticket details")));
   }, []);
 
   React.useEffect(() => {
@@ -422,7 +423,7 @@ export default function SupportTab() {
       });
       await Promise.all([loadDetail(activeId), loadTickets()]);
     } catch (reason: any) {
-      setError(reason?.message || "Unable to update ticket status");
+      setError(toUserError(reason, "Unable to update ticket status"));
     } finally {
       setUpdatingStatus(false);
     }

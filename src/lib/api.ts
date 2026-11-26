@@ -52,13 +52,31 @@ export type AdminContext = {
 export class ApiError extends Error {
   status: number;
   details: unknown;
+  code: string;
+  retryable: boolean;
+  outcomeUnknown: boolean;
+  kind: "auth" | "permission" | "network" | "timeout" | "validation" | "conflict" | "server" | "unknown";
+  safeMessage: string;
+  requestId?: string;
 
-  constructor(message: string, status: number, details?: unknown) {
+  constructor(message: string, status: number, details?: unknown, options: { code?: string; retryable?: boolean; outcomeUnknown?: boolean } = {}) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.details = details;
+    this.code = options.code || `HTTP_${status}`;
+    this.retryable = options.retryable ?? false;
+    this.outcomeUnknown = options.outcomeUnknown ?? false;
+    this.kind = this.code === "NETWORK_ERROR" ? "network" : this.code === "REQUEST_TIMEOUT" ? "timeout" : status === 401 ? "auth" : status === 403 ? "permission" : status === 409 ? "conflict" : status === 400 || status === 422 ? "validation" : status >= 500 ? "server" : "unknown";
+    this.safeMessage = message;
+    this.requestId = details && typeof details === "object" && "requestId" in details && typeof details.requestId === "string" ? details.requestId : undefined;
   }
+}
+
+export function toUserError(error: unknown, fallback = "Couldn't complete the request. Please try again.") {
+  if (!(error instanceof ApiError)) return fallback;
+  const reference = error.requestId && /^[A-Za-z0-9_-]{1,64}$/.test(error.requestId) ? ` Reference: ${error.requestId}.` : "";
+  return `${error.safeMessage}${reference}`;
 }
 
 const ACCESS_TOKEN_KEY = "clothify_admin_access_token";
@@ -100,6 +118,43 @@ export function clearSession() {
   localStorage.removeItem(USER_KEY);
 }
 
+const terminalRefreshCodes = new Set(["REFRESH_TOKEN_INVALID", "REFRESH_TOKEN_EXPIRED", "SESSION_REVOKED", "SESSION_EXPIRED", "INVALID_REFRESH_TOKEN", "ACCOUNT_SUSPENDED"]);
+function backendCode(payload: unknown) {
+  return payload && typeof payload === "object" && "code" in payload && typeof payload.code === "string" ? payload.code : "UNKNOWN";
+}
+function safeMessage(status: number, code: string) {
+  if (status === 401) return "Your session could not be confirmed. Please try again.";
+  if (status === 403) return "You don't have permission to perform this action.";
+  if (status === 429) return "Too many attempts. Try again after the allowed wait.";
+  if (status === 409) return "This information has changed. Refresh and review before continuing.";
+  if (status >= 500) return "Something went wrong. Please try again shortly.";
+  if (code === "OTP_INCORRECT") return "That code is incorrect. Check it and try again.";
+  if (code === "OTP_EXPIRED") return "This code has expired. Request a new code.";
+  if (code === "WITHDRAWAL_STATE_CONFLICT") return "This withdrawal has changed. Refresh its status.";
+  if (status === 400 || status === 422) return "Check the information entered and try again.";
+  return "Couldn't complete the request. Please try again.";
+}
+
+async function boundedFetch(url: string, options: RequestInit, timeoutMs = 25_000) {
+  const controller = new AbortController();
+  const callerSignal = options.signal;
+  const cancelFromCaller = () => controller.abort();
+  if (callerSignal?.aborted) controller.abort();
+  else callerSignal?.addEventListener("abort", cancelFromCaller, { once: true });
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    const contentType = res.headers.get("content-type") || "";
+    const payload = res.status === 204 ? null : contentType.includes("application/json")
+      ? await res.json().catch(() => null) : await res.text();
+    return { res, payload };
+  } catch (error) {
+    if (callerSignal?.aborted) throw new ApiError("", 0, undefined, { code: "REQUEST_CANCELLED" });
+    if (controller.signal.aborted) throw new ApiError("This is taking longer than expected. Check the status before trying again.", 0, undefined, { code: "REQUEST_TIMEOUT", retryable: true, outcomeUnknown: true });
+    throw new ApiError("Check your internet connection and try again.", 0, undefined, { code: "NETWORK_ERROR", retryable: true, outcomeUnknown: true });
+  } finally { clearTimeout(timeout); callerSignal?.removeEventListener("abort", cancelFromCaller); }
+}
+
 export function requireAdminSession() {
   const token = getAccessToken();
   const user = getAuthUser();
@@ -116,29 +171,31 @@ function getSessionId() {
   return localStorage.getItem(SESSION_ID_KEY);
 }
 
-let refreshInFlight: Promise<string | null> | null = null;
+type RefreshResult = { kind: "refreshed"; accessToken: string } | { kind: "terminal" | "transient" | "stale" };
+let refreshInFlight: Promise<RefreshResult> | null = null;
 
 async function performSessionRefresh() {
   const refreshToken = getRefreshToken();
   const sessionId = getSessionId();
   const user = getAuthUser();
-  if (!refreshToken || !sessionId || !user) return null;
+  if (!refreshToken || !sessionId || !user) return { kind: "transient" } as RefreshResult;
 
-  const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+  const { res, payload: responseBody } = await boundedFetch(`${API_BASE_URL}/auth/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken, sessionId }),
-  });
+  }, 12_000);
 
-  const responseBody = await res.json().catch(() => null);
-  const payload = responseBody?.success === true && "data" in responseBody
+  const payload = responseBody && typeof responseBody === "object" && responseBody.success === true && "data" in responseBody
     ? responseBody.data
     : responseBody;
-  if (!res.ok || !payload?.accessToken) return null;
+  if (!res.ok) return { kind: res.status === 401 && terminalRefreshCodes.has(backendCode(responseBody)) ? "terminal" : "transient" } as RefreshResult;
+  if (!payload || typeof payload !== "object" || typeof payload.accessToken !== "string") return { kind: "transient" } as RefreshResult;
+  if (getRefreshToken() !== refreshToken || getSessionId() !== sessionId || getAuthUser()?.id !== user.id) return { kind: "stale" } as RefreshResult;
 
   const nextSession: AuthSession = { ...payload, user };
   saveSession(nextSession);
-  return nextSession.accessToken;
+  return { kind: "refreshed", accessToken: nextSession.accessToken } as RefreshResult;
 }
 
 function refreshSession() {
@@ -178,11 +235,7 @@ async function requestOnce<T>(
     headers.set("Content-Type", "application/json");
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(url, { ...options, headers });
-  const contentType = res.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
-    ? await res.json().catch(() => null)
-    : await res.text();
+  const { res, payload } = await boundedFetch(url, { ...options, headers });
   return { res, payload, tokenUsed: token };
 }
 
@@ -195,31 +248,28 @@ export async function apiFetch<T>(
   let { res, payload, tokenUsed } = await requestOnce<T>(path, options);
 
   if (res.status === 401 && tokenUsed && !path.startsWith("/auth/")) {
-    const refreshed = await refreshSession().catch(() => null);
-    if (refreshed) {
+    const refreshed = await refreshSession().catch(() => ({ kind: "transient" as const }));
+    if (refreshed.kind === "terminal") {
+      if (getAccessToken() === tokenUsed) clearSession();
+      throw new ApiError("Your session has expired. Please sign in again.", 401, payload, { code: "SESSION_EXPIRED" });
+    }
+    if (refreshed.kind === "refreshed") {
+      if ((options.method || "GET").toUpperCase() !== "GET") {
+        throw new ApiError("Session restored. Refresh the current record before trying again.", 401, payload, { code: "AUTH_REFRESHED_ACTION_REVIEW" });
+      }
       ({ res, payload, tokenUsed } = await requestOnce<T>(
         path,
         options,
-        refreshed,
+        refreshed.accessToken,
       ));
+    } else {
+      throw new ApiError("Couldn't confirm your session. Please try again.", 401, payload, { code: "SESSION_REFRESH_UNAVAILABLE", retryable: true });
     }
   }
 
   if (!res.ok) {
-    const message =
-      (payload && typeof payload === "object" && "message" in payload
-        ? Array.isArray((payload as any).message)
-          ? (payload as any).message.join(", ")
-          : String((payload as any).message)
-        : null) || `Request failed with status ${res.status}`;
-
-    // A 403 means the session is valid but the administrator is outside their
-    // assigned boundary. Only an unrecoverable 401 should end the session.
-    if (res.status === 401 && tokenUsed && !path.startsWith("/auth/login")) {
-      clearSession();
-    }
-
-    throw new ApiError(message, res.status, payload);
+    const code = backendCode(payload);
+    throw new ApiError(safeMessage(res.status, code), res.status, payload, { code, retryable: (options.method || "GET") === "GET" && (res.status === 408 || res.status === 429 || res.status >= 500), outcomeUnknown: (options.method || "GET") !== "GET" && (res.status === 408 || res.status >= 500) });
   }
 
   if (
@@ -230,6 +280,13 @@ export async function apiFetch<T>(
     "data" in payload
   ) {
     return (payload as any).data as T;
+  }
+  if (payload && typeof payload === "object" && "success" in payload && (payload as any).success === false) {
+    throw new ApiError("Couldn't confirm the result. Check its status before trying again.", res.status, payload, { code: "UNEXPECTED_RESPONSE", outcomeUnknown: (options.method || "GET") !== "GET" });
+  }
+  if (res.status === 204) return undefined as T;
+  if (payload === null || typeof payload === "string") {
+    throw new ApiError("Couldn't confirm the result. Check its status before trying again.", res.status, undefined, { code: "UNEXPECTED_RESPONSE", outcomeUnknown: (options.method || "GET") !== "GET" });
   }
   return payload as T;
 }

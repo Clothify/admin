@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Pencil, Settings2, X } from 'lucide-react';
 import { DM_Sans } from 'next/font/google';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, toUserError } from '@/lib/api';
 import CopyableCell from '@/components/dashboard/tables/CopyableCell';
 import ModalBase from '@/components/dashboard/modals/ModalBase';
 import { TableLoadingState } from '@/components/dashboard/ui/LoadingState';
@@ -309,7 +309,7 @@ export default function ReferralTab() {
     try {
       setOverview(await apiFetch<ReferralOverview>('/admin/referrals'));
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : 'Unable to load referrals');
+      setLoadError(toUserError(error, 'Unable to load referrals'));
     }
   }, []);
 
@@ -323,7 +323,7 @@ export default function ReferralTab() {
       setMessage('Referral reward updated.');
       await loadReferrals();
     } catch (err: any) {
-      setMessage(err?.message || 'Unable to update referral reward');
+      setMessage(toUserError(err, 'Unable to update referral reward'));
     }
   };
 

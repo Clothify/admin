@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { toUserError } from "@/lib/api";
 import { Filter, Search as SearchIcon } from "lucide-react";
 
 import UserTabs from "@/components/dashboard/tables/UserTabs";
@@ -55,21 +56,20 @@ export default function UserManagementTab() {
     setLoading(true);
     setError(null);
 
-    Promise.all([
+    Promise.allSettled([
       fetchUsers({ tab, page, perPage, search, filters }),
       countUsers(),
     ])
       .then(([list, nextCounts]) => {
         if (!alive) return;
-        setItems(list.items);
-        setTotal(list.total);
-        setTotalPages(list.totalPages);
-        setSafePage(list.page);
-        setCounts(nextCounts);
+        if (list.status === "fulfilled") { setItems(list.value.items); setTotal(list.value.total); setTotalPages(list.value.totalPages); setSafePage(list.value.page); }
+        if (nextCounts.status === "fulfilled") setCounts(nextCounts.value);
+        const failure = [list, nextCounts].find((result) => result.status === "rejected");
+        if (failure && failure.status === "rejected") setError(toUserError(failure.reason, "Some user data is unavailable. Refresh to try again."));
       })
       .catch((err) => {
         if (!alive) return;
-        setError(err?.message || "Unable to load users");
+        setError(toUserError(err, "Unable to load users"));
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -140,7 +140,8 @@ export default function UserManagementTab() {
         {error && <div className="px-6 py-3 text-sm text-red-600">{error}</div>}
         {loading && <TableLoadingState rows={6} columns={6} label="Loading users" />}
 
-        {!loading && <UserTable
+        {!loading && error && items.length === 0 ? <div className="px-6 py-10 text-center text-sm text-gray-500">User data is unavailable. Refresh to try again.</div> : null}
+        {!loading && (!error || items.length > 0) && <UserTable
           users={items}
           onRowOpenHistory={(u) => {
             setCurrentUser(u);
@@ -182,7 +183,7 @@ export default function UserManagementTab() {
             setConfirmOpen(false);
             setVersion((v) => v + 1);
           } catch (err: any) {
-            setError(err?.message || "Unable to update user");
+            setError(toUserError(err, "Unable to update user"));
             setConfirmOpen(false);
           }
         }}

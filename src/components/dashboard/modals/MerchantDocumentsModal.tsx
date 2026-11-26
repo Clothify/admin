@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { toUserError } from "@/lib/api";
 import { MapPin, Phone } from "lucide-react";
 import ModalBase from "./ModalBase";
 import Lightbox from "./PhotoLightbox";
@@ -68,7 +69,7 @@ export default function MerchantDocumentsModal({
       await reviewMerchantDocument(id, status, reason[id]);
       setReviewed((prev) => ({ ...prev, [id]: status }));
     } catch (e: any) {
-      setError(e?.message || "Could not save review. Please retry.");
+      setError(toUserError(e, "Could not save review. Please retry."));
     } finally {
       setBusy(null);
     }

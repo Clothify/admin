@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AlertTriangle, Bike, Check, Clock3, Phone, RotateCcw, Search, Store, UserRound, X } from "lucide-react";
 import { cancelOrder, fetchOrderDetail, fetchOrders, updateOrderStatus, type UiOrder as Order } from "@/lib/orders";
-import { formatNaira, formatNigerianPhone } from "@/lib/api";
+import { formatNaira, formatNigerianPhone, toUserError } from "@/lib/api";
 import { TableLoadingState } from "@/components/dashboard/ui/LoadingState";
 
 const FLOW = [
@@ -55,7 +55,7 @@ export default function OrderManagementTab({ permissions = [] }: { permissions?:
     fetchOrders(tab, page, perPage, search).then((result) => {
       if (!alive) return;
       setItems(result.items); setTotal(result.total); setPages(result.totalPages); setPage(result.page);
-    }).catch((nextError) => alive && setError(nextError?.message || "Unable to load orders")).finally(() => alive && setLoading(false));
+    }).catch((nextError) => alive && setError(toUserError(nextError, "Unable to load orders"))).finally(() => alive && setLoading(false));
     return () => { alive = false; };
   }, [tab, page, search, version]);
 
@@ -70,7 +70,7 @@ export default function OrderManagementTab({ permissions = [] }: { permissions?:
     <div className="relative mt-6 max-w-[720px]"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search order ID, customer, phone, merchant or location" className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-4 text-sm" /></div>
     <div className="mt-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
       <div className="hidden grid-cols-12 gap-4 bg-gray-50 px-6 py-3 text-[13px] font-semibold text-gray-600 md:grid"><div className="col-span-2">Order</div><div className="col-span-2">Customer</div><div className="col-span-2">Service</div><div className="col-span-2">Merchant</div><div className="col-span-2">Location</div><div className="col-span-2">Requested</div></div>
-      <div className="p-2">{error && <p className="p-4 text-sm text-red-600">{error}</p>}{loading && <TableLoadingState rows={6} columns={6} label="Loading orders" />}{!loading && items.map((order) => <button key={order.id} onClick={() => void openOrder(order)} className="block w-full rounded-lg px-3 py-4 text-left hover:bg-gray-50 md:grid md:grid-cols-12 md:items-center md:gap-4"><div className="md:col-span-2"><p className="font-semibold text-gray-950">{order.orderNumber}</p><p className="text-xs text-gray-500">{humanize(order.raw?.status)}</p></div><p className="mt-2 text-gray-900 md:col-span-2 md:mt-0">{order.userName}</p><p className="text-gray-700 md:col-span-2">{order.washType}</p><p className="text-gray-700 md:col-span-2">{order.merchantName}</p><p className="text-gray-700 md:col-span-2">{order.state}, {order.city}</p><p className="text-gray-700 md:col-span-2">{order.requestDate}<br /><span className="text-xs text-gray-500">{order.requestTime}</span></p></button>)}{!loading && !items.length && <p className="p-8 text-center text-gray-500">No orders found.</p>}</div>
+      <div className="p-2">{error && <p className="p-4 text-sm text-red-600">{error}</p>}{loading && <TableLoadingState rows={6} columns={6} label="Loading orders" />}{!loading && items.map((order) => <button key={order.id} onClick={() => void openOrder(order)} className="block w-full rounded-lg px-3 py-4 text-left hover:bg-gray-50 md:grid md:grid-cols-12 md:items-center md:gap-4"><div className="md:col-span-2"><p className="font-semibold text-gray-950">{order.orderNumber}</p><p className="text-xs text-gray-500">{humanize(order.raw?.status)}</p></div><p className="mt-2 text-gray-900 md:col-span-2 md:mt-0">{order.userName}</p><p className="text-gray-700 md:col-span-2">{order.washType}</p><p className="text-gray-700 md:col-span-2">{order.merchantName}</p><p className="text-gray-700 md:col-span-2">{order.state}, {order.city}</p><p className="text-gray-700 md:col-span-2">{order.requestDate}<br /><span className="text-xs text-gray-500">{order.requestTime}</span></p></button>)}{!loading && !items.length && <p className="p-8 text-center text-gray-500">{error ? "Order data is unavailable. Refresh to try again." : "No orders found."}</p>}</div>
       <div className="flex flex-col gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-gray-500">{total ? `Showing ${(page - 1) * perPage + 1} to ${Math.min(page * perPage, total)} of ${total}` : "0 entries"}</p><div className="flex gap-2"><button disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="h-9 rounded-lg border px-3 disabled:opacity-40">Previous</button><span className="grid h-9 place-items-center px-2 text-sm">{page} / {pages}</span><button disabled={page === pages} onClick={() => setPage((value) => value + 1)} className="h-9 rounded-lg border px-3 disabled:opacity-40">Next</button></div></div>
     </div>
     {selected && <OrderModal order={selected} loading={detailLoading} canManage={granted.has("orders.manage")} canCancel={granted.has("orders.cancel")} onClose={() => setSelected(null)} onChanged={(next) => { setSelected(next); setVersion((value) => value + 1); }} />}
@@ -101,14 +101,14 @@ function OrderModal({ order, loading, canManage, canCancel, onClose, onChanged }
     if (!nextStatus || !note.trim()) { setActionError("Select the next stage and add an audit note."); return; }
     setSaving(true); setActionError("");
     try { await updateOrderStatus(order.id, nextStatus, note.trim()); await refresh(); }
-    catch (error: any) { setActionError(error?.message || "Unable to update the order."); }
+    catch (error: any) { setActionError(toUserError(error, "Unable to update the order.")); }
     finally { setSaving(false); }
   }
   async function cancel() {
     if (!cancelReason.trim()) { setActionError("Enter a customer-facing cancellation reason."); return; }
     setSaving(true); setActionError("");
     try { await cancelOrder(order.id, cancelReason.trim()); await refresh(); setShowCancel(false); }
-    catch (error: any) { setActionError(error?.message || "Unable to cancel the order."); }
+    catch (error: any) { setActionError(toUserError(error, "Unable to cancel the order.")); }
     finally { setSaving(false); }
   }
 

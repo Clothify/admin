@@ -11,7 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Landmark, RefreshCw, WalletCards } from "lucide-react";
-import { formatNaira } from "@/lib/api";
+import { formatNaira, toUserError } from "@/lib/api";
 import { DashboardContentLoadingState } from "@/components/dashboard/ui/LoadingState";
 import {
   FinanceSummary,
@@ -81,7 +81,7 @@ export default function FinanceTab() {
       if (sequence === accountSequence.current) setAccountResult(result);
     } catch (error: unknown) {
       if (sequence === accountSequence.current)
-        setAccountError(error instanceof Error ? error.message : "Could not check this wallet");
+        setAccountError(toUserError(error, "Could not check this wallet"));
     } finally {
       if (sequence === accountSequence.current) setAccountLoading(false);
     }
@@ -91,18 +91,19 @@ export default function FinanceTab() {
     let alive = true;
     setLoading(true);
     setError(null);
-    Promise.all([
+    Promise.allSettled([
       fetchFinanceSummary(range),
       fetchRevenueSeries(range),
       fetchReconciliation(),
     ])
       .then(([nextSummary, nextSeries, nextReconciliation]) => {
         if (!alive) return;
-        setSummary(nextSummary);
-        setSeries(nextSeries);
-        setReconciliation(nextReconciliation);
+        if (nextSummary.status === "fulfilled") setSummary(nextSummary.value);
+        if (nextSeries.status === "fulfilled") setSeries(nextSeries.value);
+        if (nextReconciliation.status === "fulfilled") setReconciliation(nextReconciliation.value);
+        const failure = [nextSummary, nextSeries, nextReconciliation].find((result) => result.status === "rejected");
+        if (failure && failure.status === "rejected") setError(toUserError(failure.reason, "Some finance data is unavailable. Refresh to try again."));
       })
-      .catch((err) => alive && setError(err?.message || "Unable to load finance data"))
       .finally(() => alive && setLoading(false));
     return () => { alive = false; };
   }, [range, version]);
