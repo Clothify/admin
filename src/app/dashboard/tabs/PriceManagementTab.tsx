@@ -5,6 +5,7 @@ import * as React from "react";
 import { toUserError } from "@/lib/api";
 import { Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import MatchingSettingsTab from "./MatchingSettingsTab";
 
 const money = (n: number) =>
   new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 2 }).format(n);
@@ -17,7 +18,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
   );
 }
 
-type PriceTab = "users" | "merchant" | "riders";
+type PriceTab = "users" | "merchant" | "riders" | "matching";
 
 type SpeedFee = { id?: string; deliveryType: "EXPRESS" | "SUPER_EXPRESS"; percentage: number; maxDurationMinutes: number; isActive: boolean };
 type Commission = { id?: string; planCategory: "EXCLUSIVE" | "PREMIUM" | "BASIC"; commissionPercent: number; isActive?: boolean };
@@ -36,7 +37,7 @@ const HeaderTabs = ({ active, onChange }: { active: PriceTab; onChange: (t: Pric
     const is = active === k;
     return <button onClick={() => onChange(k)} className={`relative px-2 pb-3 text-[18px] sm:text-[16px] font-normal leading-none ${is ? "text-[#0B1E5B] font-semibold" : "text-gray-500"}`}>{label}{is && <span className="absolute left-0 right-0 mx-auto -bottom-[1px] h-[2px] w-[80px] bg-[#0B1E5B] rounded-full" />}</button>;
   };
-  return <div className="border-b border-gray-100"><div className="flex items-center gap-10"><Tab k="users" label="Users" /><Tab k="merchant" label="Merchant" /><Tab k="riders" label="Riders" /></div></div>;
+  return <div className="overflow-x-auto border-b border-gray-100"><div className="flex min-w-max items-center gap-8"><Tab k="users" label="Users" /><Tab k="merchant" label="Merchant" /><Tab k="riders" label="Riders" /><Tab k="matching" label="Matching" /></div></div>;
 };
 
 const stripPercent = (v: string) => Number(String(v).replace(/[^\d.]/g, "")) || 0;
@@ -241,5 +242,5 @@ const RidersTab = () => {
 
 export default function PriceManagementTab() {
   const [active, setActive] = React.useState<PriceTab>("users");
-  return <div className="bg-transparent"><HeaderTabs active={active} onChange={setActive} /><main className="px-4 sm:px-6 pt-6 pb-10"><div className="rounded-xl bg-white shadow-sm border border-gray-100 p-5 sm:p-8">{active === "users" && <UsersTab />}{active === "merchant" && <MerchantTab />}{active === "riders" && <RidersTab />}</div></main></div>;
+  return <div className="bg-transparent"><HeaderTabs active={active} onChange={setActive} /><main className="px-4 sm:px-6 pt-6 pb-10"><div className="rounded-xl bg-white shadow-sm border border-gray-100 p-5 sm:p-8">{active === "users" && <UsersTab />}{active === "merchant" && <MerchantTab />}{active === "riders" && <RidersTab />}{active === "matching" && <MatchingSettingsTab />}</div></main></div>;
 }
