@@ -34,6 +34,7 @@ import SendNotificationsTab from "./tabs/SendNotificationsTab";
 import SupportTab from "./tabs/SupportTab";
 import FinanceTab from "./tabs/FinanceTab";
 import WithdrawalsTab from "./tabs/WithdrawalsTab";
+import BankReviewsTab from "./tabs/BankReviewsTab";
 import AdminTeamTab from "./tabs/AdminTeamTab";
 import AuditLogTab from "./tabs/AuditLogTab";
 import {
@@ -67,6 +68,13 @@ const TABS = [
     permission: "withdrawals.read",
     icon: <ArrowDownToLine className="w-4 h-4" />,
     component: WithdrawalsTab,
+  },
+  {
+    slug: "bank-reviews",
+    name: "Bank reviews",
+    permission: "merchants.read",
+    icon: <Landmark className="w-4 h-4" />,
+    component: BankReviewsTab,
   },
   {
     slug: "users",
@@ -217,7 +225,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   };
   const sectionGroup =
     ["users", "merchants", "riders", "orders"].includes(activeTab.slug) ? "Operations" :
-    ["finance", "withdrawals", "pricing", "referrals"].includes(activeTab.slug) ? "Finance" :
+    ["finance", "withdrawals", "bank-reviews", "pricing", "referrals"].includes(activeTab.slug) ? "Finance" :
     ["notifications", "support"].includes(activeTab.slug) ? "Engagement" :
     ["admin-team", "audit-log"].includes(activeTab.slug) ? "Administration" : "Workspace";
   const adminName = String(admin.displayName || user?.email || user?.phone || "Administrator");
@@ -284,6 +292,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             <HomeTab permissions={admin.permissions} />
           ) : activeTab.slug === "withdrawals" ? (
             <WithdrawalsTab permissions={admin.permissions} />
+          ) : activeTab.slug === "bank-reviews" ? (
+            <BankReviewsTab permissions={admin.permissions} />
           ) : activeTab.slug === "riders" ? (
             <RiderManagementTab permissions={admin.permissions} />
           ) : activeTab.slug === "orders" ? (
