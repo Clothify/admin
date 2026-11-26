@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toUserError } from "@/lib/api";
 import {
   AlertTriangle, ArrowLeft, Bike, CalendarClock, CheckCircle2, Clock3, MapPin,
   Phone, RefreshCw, Search, Settings2, UserRound,
@@ -89,7 +90,7 @@ export default function RiderDispatchWorkspace({ permissions = [] }: { permissio
       setAlerts(next);
       setSelectedOrderId((current) => current && next.some((item) => item.orderId === current) ? current : next[0]?.orderId ?? null);
     } catch (err: any) {
-      setError(err?.message || "Unable to load unresolved rider dispatches.");
+      setError(toUserError(err, "Unable to load unresolved rider dispatches."));
     } finally {
       setLoadingAlerts(false);
     }
@@ -99,7 +100,7 @@ export default function RiderDispatchWorkspace({ permissions = [] }: { permissio
     void loadAlerts();
     if (canViewSettings) {
       fetchRiderDispatchSettings().then(setSettings)
-        .catch((err: any) => setSettingsError(err?.message || "Unable to load search settings."));
+        .catch((err: any) => setSettingsError(toUserError(err, "Unable to load search settings.")));
     }
   }, [canViewSettings, loadAlerts]);
 
@@ -120,7 +121,7 @@ export default function RiderDispatchWorkspace({ permissions = [] }: { permissio
       .catch((err: any) => {
         if (alive) {
           setCandidates([]);
-          setError(err?.message || "Unable to load rider candidates.");
+          setError(toUserError(err, "Unable to load rider candidates."));
         }
       })
       .finally(() => { if (alive) setLoadingCandidates(false); });
@@ -145,7 +146,7 @@ export default function RiderDispatchWorkspace({ permissions = [] }: { permissio
       setSelectedRiderId(null);
       await loadAlerts();
     } catch (err: any) {
-      setError(err?.message || "Unable to assign this rider.");
+      setError(toUserError(err, "Unable to assign this rider."));
     } finally {
       setAssigning(false);
     }
@@ -174,7 +175,7 @@ export default function RiderDispatchWorkspace({ permissions = [] }: { permissio
       setSettings({ initialRadiusKm: initial, maxRadiusKm: max, waveSize });
       setSuccess("Radar settings were updated.");
     } catch (err: any) {
-      setSettingsError(err?.message || "Unable to update radar settings.");
+      setSettingsError(toUserError(err, "Unable to update radar settings."));
     } finally {
       setSavingSettings(false);
     }
@@ -198,7 +199,7 @@ export default function RiderDispatchWorkspace({ permissions = [] }: { permissio
       setSuccess(`${selectedAlert.orderNumber} was scheduled for ${date.toLocaleString()}.`);
       await loadAlerts();
     } catch (err: any) {
-      setError(err?.message || "Unable to schedule this dispatch.");
+      setError(toUserError(err, "Unable to schedule this dispatch."));
     } finally {
       setSavingSchedule(false);
     }

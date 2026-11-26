@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { toUserError } from "@/lib/api";
 import { Filter, Search as SearchIcon } from "lucide-react";
 import ModalBase from "./ModalBase";
 import { fetchUserOrders, type UserOrderRow } from "@/lib/users";
@@ -50,7 +51,7 @@ export default function OrderHistoryModal({
       })
       .catch((err) => {
         if (!alive) return;
-        setError(err?.message || "Unable to load order history");
+        setError(toUserError(err, "Unable to load order history"));
       })
       .finally(() => {
         if (alive) setLoading(false);

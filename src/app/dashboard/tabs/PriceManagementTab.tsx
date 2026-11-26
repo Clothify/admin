@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { toUserError } from "@/lib/api";
 import { Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
@@ -51,7 +52,7 @@ const UsersTab = () => {
   React.useEffect(() => {
     apiFetch<SpeedFee[]>("/admin/config/delivery-speed-fees")
       .then((rows) => setFees((defaults) => defaults.map((item) => rows.find((row) => row.deliveryType === item.deliveryType) ?? item)))
-      .catch((err) => setMessage(err?.message || "Unable to load speed fee settings"));
+      .catch((err) => setMessage(toUserError(err, "Unable to load speed fee settings")));
   }, []);
 
   const updateFee = (deliveryType: SpeedFee["deliveryType"], patch: Partial<SpeedFee>) =>
@@ -66,7 +67,7 @@ const UsersTab = () => {
       })));
       setFees(await apiFetch<SpeedFee[]>("/admin/config/delivery-speed-fees"));
       setMessage("Speed fees and delivery promises updated");
-    } catch (err: any) { setMessage(err?.message || "Unable to update speed fee settings"); }
+    } catch (err: any) { setMessage(toUserError(err, "Unable to update speed fee settings")); }
     finally { setSaving(false); }
   };
 
@@ -110,7 +111,7 @@ const MerchantTab = () => {
     ]).then(([commissions, catalog]) => {
       setTiers((prev) => ({ ...prev, ...Object.fromEntries(commissions.map((r) => [r.planCategory, Number(r.commissionPercent || 0)])) } as any));
       setClothTypes(catalog);
-    }).catch((err) => setMessage(err?.message || "Unable to load merchant pricing settings"));
+    }).catch((err) => setMessage(toUserError(err, "Unable to load merchant pricing settings")));
   }, []);
 
   const addClothType = async () => {
@@ -125,7 +126,7 @@ const MerchantTab = () => {
       setNewClothType("");
       setNewServices(["WASH_AND_IRON"]);
       setMessage("Clothes type added. Merchants will be prompted to price it before going online.");
-    } catch (err: any) { setMessage(err?.message || "Unable to add clothes type"); }
+    } catch (err: any) { setMessage(toUserError(err, "Unable to add clothes type")); }
     finally { setSaving(false); }
   };
 
@@ -134,7 +135,7 @@ const MerchantTab = () => {
     try {
       await Promise.all((Object.keys(tiers) as Commission["planCategory"][]).map((planCategory) => apiFetch(`/admin/config/merchant-commissions/${planCategory}`, { method: "PATCH", body: JSON.stringify({ commissionPercent: tiers[planCategory], isActive: true }) })));
       setMessage("Updated successfully");
-    } catch (err: any) { setMessage(err?.message || "Unable to update merchant percentages"); }
+    } catch (err: any) { setMessage(toUserError(err, "Unable to update merchant percentages")); }
     finally { setSaving(false); }
   };
 
@@ -197,7 +198,7 @@ const RidersTab = () => {
         if (riderPercent != null) setPercentage(String(riderPercent));
         setTiers(rows.map((t) => ({ id: t.id, minKm: Number(t.minKm), maxKm: Number(t.maxKm), label: `${t.minKm}km–${t.maxKm}km`, amount: Number(t.amount), enabled: t.isActive !== false })));
       })
-      .catch((err) => setMessage(err?.message || "Unable to load rider pricing"));
+      .catch((err) => setMessage(toUserError(err, "Unable to load rider pricing")));
   }, []);
 
   const addTier = () => {
@@ -220,7 +221,7 @@ const RidersTab = () => {
       const rows = await apiFetch<DistanceTier[]>("/admin/config/rider-distance-pricing");
       setTiers(rows.map((t) => ({ id: t.id, minKm: Number(t.minKm), maxKm: Number(t.maxKm), label: `${t.minKm}km–${t.maxKm}km`, amount: Number(t.amount), enabled: t.isActive !== false })));
       setMessage("Updated successfully");
-    } catch (err: any) { setMessage(err?.message || "Unable to update rider pricing"); }
+    } catch (err: any) { setMessage(toUserError(err, "Unable to update rider pricing")); }
     finally { setSaving(false); }
   };
 

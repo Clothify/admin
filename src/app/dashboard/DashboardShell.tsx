@@ -42,6 +42,7 @@ import {
   getAdminContext,
   getAuthUser,
   requireAdminSession,
+  toUserError,
 } from "@/lib/api";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -162,7 +163,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       .catch((error) => {
         if (!current) return;
         setAccessError(
-          error?.message || "Unable to load administrator permissions",
+          toUserError(error, "Unable to load administrator permissions"),
         );
         setChecked(true);
       });

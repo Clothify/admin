@@ -4,7 +4,7 @@ import Image from "next/image";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, Clock, Mail, Search, Send, Smartphone, X } from "lucide-react";
-import { apiFetch, formatDate, formatTime } from "@/lib/api";
+import { apiFetch, formatDate, formatTime, toUserError } from "@/lib/api";
 import CopyableCell from "@/components/dashboard/tables/CopyableCell";
 import { ListLoadingState } from "@/components/dashboard/ui/LoadingState";
 
@@ -89,7 +89,7 @@ export default function SendNotificationsTab() {
   const loadCampaigns = useCallback(() => {
     apiFetch<Campaign[]>("/admin/notifications")
       .then(setCampaigns)
-      .catch((error) => setMessage(error?.message || "Unable to load campaign history."));
+      .catch((error) => setMessage(toUserError(error, "Unable to load campaign history.")));
   }, []);
 
   useEffect(loadCampaigns, [loadCampaigns]);
@@ -102,7 +102,7 @@ export default function SendNotificationsTab() {
       });
       setSearchResults(recipients);
     } catch (error: any) {
-      setMessage(error?.message || "Unable to search accounts.");
+      setMessage(toUserError(error, "Unable to search accounts."));
     } finally {
       setSearching(false);
     }
@@ -174,7 +174,7 @@ export default function SendNotificationsTab() {
       reset();
       loadCampaigns();
     } catch (error: any) {
-      setMessage(error?.message || "Unable to send campaign.");
+      setMessage(toUserError(error, "Unable to send campaign."));
     } finally {
       setSending(false);
     }
@@ -187,7 +187,7 @@ export default function SendNotificationsTab() {
       setMessage("Campaign cancelled.");
       loadCampaigns();
     } catch (error: any) {
-      setMessage(error?.message || "Unable to cancel campaign.");
+      setMessage(toUserError(error, "Unable to cancel campaign."));
     }
   };
 

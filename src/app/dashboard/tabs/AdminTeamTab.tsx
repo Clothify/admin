@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Shield, UserCog } from "lucide-react";
-import { formatDate } from "@/lib/api";
+import { formatDate, toUserError } from "@/lib/api";
 import { AdminRole, AdminTeamMember, fetchAdminRoles, fetchAdminTeam, updateAdminRoles, updateAdminStatus } from "@/lib/admin";
 import CopyableCell from "@/components/dashboard/tables/CopyableCell";
 import ModalBase from "@/components/dashboard/modals/ModalBase";
@@ -20,7 +20,7 @@ export default function AdminTeamTab() {
     setLoading(true);
     Promise.all([fetchAdminTeam(), fetchAdminRoles()])
       .then(([nextMembers, nextRoles]) => { setMembers(nextMembers); setRoles(nextRoles); })
-      .catch((err) => setMessage(err?.message || "Unable to load the admin team"))
+      .catch((err) => setMessage(toUserError(err, "Unable to load the admin team")))
       .finally(() => setLoading(false));
   }, []);
   React.useEffect(load, [load]);
@@ -37,14 +37,14 @@ export default function AdminTeamTab() {
       setSelected(null);
       setMessage("Administrator roles updated.");
       load();
-    } catch (err: any) { setMessage(err?.message || "Unable to update roles"); }
+    } catch (err: any) { setMessage(toUserError(err, "Unable to update roles")); }
   };
   const toggleStatus = async (member: AdminTeamMember) => {
     const next = !member.isActive;
     try {
       await updateAdminStatus(member.id, next, next ? undefined : "Disabled from the administrator team panel");
       load();
-    } catch (err: any) { setMessage(err?.message || "Unable to update administrator"); }
+    } catch (err: any) { setMessage(toUserError(err, "Unable to update administrator")); }
   };
 
   return (

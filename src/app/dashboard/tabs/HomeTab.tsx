@@ -6,7 +6,7 @@ import StatCard from "@/components/dashboard/cards/StatCard";
 import MetricCard from "@/components/dashboard/cards/MetricCard";
 import DonutChart from "@/components/dashboard/charts/DonutChart";
 import { DashboardContentLoadingState } from "@/components/dashboard/ui/LoadingState";
-import { apiFetch, formatNaira } from "@/lib/api";
+import { apiFetch, formatNaira, toUserError } from "@/lib/api";
 import { fetchFinanceSummary, type FinanceSummary } from "@/lib/finance";
 
 type Period = "" | "week" | "last-week" | "month";
@@ -55,7 +55,7 @@ export default function HomeTab({ permissions = [] }: { permissions?: string[] }
       if (metricsResult.status === "fulfilled") {
         setMetrics(metricsResult.value);
       } else {
-        setError(metricsResult.reason?.message || "Unable to load dashboard metrics");
+        setError(toUserError(metricsResult.reason, "Unable to load dashboard metrics"));
       }
       if (financeResult.status === "fulfilled") setFinance(financeResult.value);
       setLoading(false);

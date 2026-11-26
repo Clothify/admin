@@ -68,6 +68,9 @@ export type Withdrawal = {
   transferCode?: string | null;
   failureReason?: string | null;
   reviewReason?: string | null;
+  pendingReason?: "APPROVAL_REQUIRED" | "PROVIDER_CONFIRMATION" | string | null;
+  reconciliationRequired?: boolean;
+  refundConfirmed?: boolean;
   createdAt: string;
   updatedAt: string;
   bankAccount: {
@@ -118,6 +121,10 @@ export function fetchWithdrawals(params: Range & {
   owner?: string;
 }) {
   return apiFetch<ApiList<Withdrawal>>("/admin/finance/withdrawals", { query: params });
+}
+
+export function fetchWithdrawal(id: string) {
+  return apiFetch<Withdrawal>(`/admin/withdrawals/${encodeURIComponent(id)}`);
 }
 
 export function approveWithdrawal(id: string) {

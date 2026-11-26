@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toUserError } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { Filter, MoreHorizontal, Radio, Search as SearchIcon, UsersRound } from "lucide-react";
 
@@ -134,21 +135,20 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
     setLoading(true);
     setError(null);
 
-    Promise.all([
+    Promise.allSettled([
       fetchRiders({ tab, page, perPage, search, filters }),
       countRiders(),
     ])
       .then(([list, nextCounts]) => {
         if (!alive) return;
-        setItems(list.items);
-        setTotal(list.total);
-        setTotalPages(list.totalPages);
-        setSafePage(list.page);
-        setCounts(nextCounts);
+        if (list.status === "fulfilled") { setItems(list.value.items); setTotal(list.value.total); setTotalPages(list.value.totalPages); setSafePage(list.value.page); }
+        if (nextCounts.status === "fulfilled") setCounts(nextCounts.value);
+        const failure = [list, nextCounts].find((result) => result.status === "rejected");
+        if (failure && failure.status === "rejected") setError(toUserError(failure.reason, "Some rider data is unavailable. Refresh to try again."));
       })
       .catch((err) => {
         if (!alive) return;
-        setError(err?.message || "Unable to load riders");
+        setError(toUserError(err, "Unable to load riders"));
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -199,7 +199,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
       closeAll();
       setVersion((v) => v + 1);
     } catch (err: any) {
-      setError(err?.message || "Unable to update rider");
+      setError(toUserError(err, "Unable to update rider"));
       setConfirmOpen(false);
     }
   };
@@ -351,7 +351,7 @@ export default function RiderManagementTab({ permissions = [] }: { permissions?:
                   </td>
                 </tr>
               ))}
-              {items.length === 0 && <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-500">No riders match the current search and filters.</td></tr>}
+              {items.length === 0 && <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-500">{error ? "Rider data is unavailable. Refresh to try again." : "No riders match the current search and filters."}</td></tr>}
             </tbody>
           </table>
         </div>}
