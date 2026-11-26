@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Bell, CheckCheck, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toUserError } from "@/lib/api";
 
 type AdminNotification = {
   id: string;
@@ -57,11 +57,7 @@ export default function AdminNotificationBell() {
       setUnread(count.count);
       setError(null);
     } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "Could not load notifications",
-      );
+      setError(toUserError(loadError, "Could not load notifications."));
     } finally {
       setLoading(false);
     }

@@ -475,6 +475,8 @@ export default function SupportTab() {
           <div className="min-h-0 flex-1 overflow-y-auto">
             {loading ? (
               <div className="grid h-40 place-items-center text-[#0B1E5B]"><LoaderCircle className="h-6 w-6 animate-spin" /></div>
+            ) : error && conversations.length === 0 ? (
+              <div className="px-8 py-16 text-center text-sm text-slate-600">Conversations are unavailable. Use Refresh to try again.</div>
             ) : filtered.length ? (
               filtered.map((conversation) => (
                 <ConversationRow key={conversation.id} conversation={conversation} active={conversation.id === activeId} onClick={() => selectConversation(conversation.id)} />

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
-import { adminLogin } from "@/lib/api";
+import { adminLogin, toUserError } from "@/lib/api";
 
 export default function SignIn() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function SignIn() {
       await adminLogin(email, password);
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unable to sign in");
+      setError(toUserError(err, "Unable to sign in."));
     } finally {
       setLoading(false);
     }

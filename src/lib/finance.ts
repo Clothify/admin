@@ -71,6 +71,7 @@ export type Withdrawal = {
   pendingReason?: "APPROVAL_REQUIRED" | "PROVIDER_CONFIRMATION" | string | null;
   reconciliationRequired?: boolean;
   refundConfirmed?: boolean;
+  otpVerifiedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   bankAccount: {

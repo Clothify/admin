@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { DM_Sans } from "next/font/google";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
-import { apiFetch, formatDate, formatNaira, formatNigerianPhone, type ApiList } from "@/lib/api";
+import { apiFetch, formatDate, formatNaira, formatNigerianPhone, toUserError, type ApiList } from "@/lib/api";
 import { setUserStatus } from "@/lib/users";
 import { setMerchantStatus, type MerchantDocument } from "@/lib/merchants";
 import { setRiderStatus } from "@/lib/riders";
@@ -205,7 +205,7 @@ function ProfileHistory({ directory, id }: { directory: AccountDirectory; id: st
       if (filter.page > lastPage) setFilter({ ...filter, page: lastPage });
       else setHistory(result);
     }).catch((reason: unknown) => {
-      if (current) setError(reason instanceof Error ? reason.message : `Unable to load ${historyType}.`);
+      if (current) setError(toUserError(reason, `Unable to load ${historyType}.`));
     });
     return () => { current = false; };
   }, [id, directory, historyType, filter, retry]);
@@ -425,7 +425,7 @@ export default function AccountWorkspace({ directory, id }: { directory: Account
     loadProfile(directory, id).then(result => {
       if (current) setProfile(result);
     }).catch((reason: unknown) => {
-      if (current) setError(reason instanceof Error ? reason.message : "Unable to load the account.");
+      if (current) setError(toUserError(reason, "Unable to load the account."));
     });
     return () => { current = false; };
   }, [directory, id, revision]);
@@ -464,7 +464,7 @@ export default function AccountWorkspace({ directory, id }: { directory: Account
       setProfile(null);
       setRevision(value => value + 1);
     } catch (reason) {
-      setStatusError(reason instanceof Error ? reason.message : "Unable to update account status.");
+      setStatusError(toUserError(reason, "Unable to update account status."));
     } finally {
       setSaving(false);
     }

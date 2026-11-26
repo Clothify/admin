@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toUserError } from "@/lib/api";
 
 type MerchantProfileChange = {
   id: string;
@@ -78,7 +78,7 @@ export default function MerchantProfileUpdatesPanel({ merchantId, canReview = tr
     }).then((result) => {
       if (current) { setResponse(result); setError(""); }
     }).catch((err: unknown) => {
-      if (current) setError(err instanceof Error ? err.message : "Unable to load merchant updates.");
+      if (current) setError(toUserError(err, "Unable to load merchant updates."));
     }).finally(() => { if (current) setLoading(false); });
     return () => { current = false; };
   }, [merchantId, page, search, status, version]);
@@ -95,7 +95,7 @@ export default function MerchantProfileUpdatesPanel({ merchantId, canReview = tr
       setReason("");
       refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unable to reject this change.");
+      setError(toUserError(err, "Unable to reject this change."));
     } finally {
       setSaving(false);
     }
