@@ -7,6 +7,7 @@ import {
   Car,
   DollarSign,
   ShoppingCart,
+  Activity,
   UserCheck,
   Bell,
   LifeBuoy,
@@ -29,6 +30,7 @@ import MerchantManagementTab from "./tabs/MerchantManagementTab";
 import RiderManagementTab from "./tabs/RiderManagementTab";
 import PriceManagementTab from "./tabs/PriceManagementTab";
 import OrderManagementTab from "./tabs/OrderManagementTab";
+import OrderDiagnosticsTab from "./tabs/OrderDiagnosticsTab";
 import ReferralTab from "./tabs/ReferralTab";
 import SendNotificationsTab from "./tabs/SendNotificationsTab";
 import SupportTab from "./tabs/SupportTab";
@@ -103,6 +105,13 @@ const TABS = [
     permission: "orders.read",
     icon: <ShoppingCart className="w-4 h-4" />,
     component: OrderManagementTab,
+  },
+  {
+    slug: "order-diagnostics",
+    name: "Order diagnostics",
+    permission: "orders.read",
+    icon: <Activity className="w-4 h-4" />,
+    component: OrderDiagnosticsTab,
   },
   {
     slug: "pricing",
@@ -224,7 +233,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     if (next) router.push("/dashboard/" + next.slug);
   };
   const sectionGroup =
-    ["users", "merchants", "riders", "orders"].includes(activeTab.slug) ? "Operations" :
+    ["users", "merchants", "riders", "orders", "order-diagnostics"].includes(activeTab.slug) ? "Operations" :
     ["finance", "withdrawals", "bank-reviews", "pricing", "referrals"].includes(activeTab.slug) ? "Finance" :
     ["notifications", "support"].includes(activeTab.slug) ? "Engagement" :
     ["admin-team", "audit-log"].includes(activeTab.slug) ? "Administration" : "Workspace";
