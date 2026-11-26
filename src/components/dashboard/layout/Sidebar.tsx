@@ -8,7 +8,7 @@ type NavItem = { name: string; icon: React.ReactNode };
 const GROUPS = [
   { label: "Workspace", names: ["Overview"] },
   { label: "Operations", names: ["Users", "Merchants", "Riders", "Orders", "Order diagnostics"] },
-  { label: "Finance", names: ["Revenue & Finance", "Withdrawals", "Bank reviews", "Pricing", "Referrals"] },
+  { label: "Finance", names: ["Revenue & Finance", "Withdrawals", "Pricing", "Referrals"] },
   { label: "Engagement", names: ["Notifications", "Support"] },
   { label: "Administration", names: ["Admin Team", "Audit Log"] },
 ];

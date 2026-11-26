@@ -36,7 +36,6 @@ import SendNotificationsTab from "./tabs/SendNotificationsTab";
 import SupportTab from "./tabs/SupportTab";
 import FinanceTab from "./tabs/FinanceTab";
 import WithdrawalsTab from "./tabs/WithdrawalsTab";
-import BankReviewsTab from "./tabs/BankReviewsTab";
 import AdminTeamTab from "./tabs/AdminTeamTab";
 import AuditLogTab from "./tabs/AuditLogTab";
 import {
@@ -70,13 +69,6 @@ const TABS = [
     permission: "withdrawals.read",
     icon: <ArrowDownToLine className="w-4 h-4" />,
     component: WithdrawalsTab,
-  },
-  {
-    slug: "bank-reviews",
-    name: "Bank reviews",
-    permission: "merchants.read",
-    icon: <Landmark className="w-4 h-4" />,
-    component: BankReviewsTab,
   },
   {
     slug: "users",
@@ -195,7 +187,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     admin?.permissions.includes(tab.permission),
   );
   const [, activeSlug = "overview", accountId] = pathname.split("/").filter(Boolean);
-  const requestedTab = visibleTabs.find((tab) => tab.slug === activeSlug);
+  // Keep existing bank-review links working inside the Merchant workspace.
+  const requestedTab = visibleTabs.find((tab) => tab.slug === (activeSlug === "bank-reviews" ? "merchants" : activeSlug));
   const activeTab = requestedTab || visibleTabs[0];
   const ActiveView = activeTab?.component;
 
@@ -234,7 +227,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   };
   const sectionGroup =
     ["users", "merchants", "riders", "orders", "order-diagnostics"].includes(activeTab.slug) ? "Operations" :
-    ["finance", "withdrawals", "bank-reviews", "pricing", "referrals"].includes(activeTab.slug) ? "Finance" :
+    ["finance", "withdrawals", "pricing", "referrals"].includes(activeTab.slug) ? "Finance" :
     ["notifications", "support"].includes(activeTab.slug) ? "Engagement" :
     ["admin-team", "audit-log"].includes(activeTab.slug) ? "Administration" : "Workspace";
   const adminName = String(admin.displayName || user?.email || user?.phone || "Administrator");
@@ -301,8 +294,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             <HomeTab permissions={admin.permissions} />
           ) : activeTab.slug === "withdrawals" ? (
             <WithdrawalsTab permissions={admin.permissions} />
-          ) : activeTab.slug === "bank-reviews" ? (
-            <BankReviewsTab permissions={admin.permissions} />
+          ) : activeTab.slug === "merchants" ? (
+            <React.Suspense fallback={<PageLoadingState label="Loading merchants" />}>
+              <MerchantManagementTab permissions={admin.permissions} initialView={activeSlug === "bank-reviews" ? "bank-reviews" : undefined} />
+            </React.Suspense>
           ) : activeTab.slug === "riders" ? (
             <RiderManagementTab permissions={admin.permissions} />
           ) : activeTab.slug === "orders" ? (

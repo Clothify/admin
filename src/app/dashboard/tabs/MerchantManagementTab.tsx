@@ -3,7 +3,8 @@
 
 import * as React from "react";
 import { toUserError } from "@/lib/api";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Filter,
   MoreHorizontal,
@@ -23,6 +24,7 @@ import MerchantDocumentsModal from "@/components/dashboard/modals/MerchantDocume
 import ConfirmMerchantActionModal from "@/components/dashboard/modals/ConfirmMerchantActionModal";
 import { TableLoadingState } from "@/components/dashboard/ui/LoadingState";
 import { formatNigerianPhone } from "@/lib/api";
+import BankReviewsTab from "./BankReviewsTab";
 
 import {
   fetchMerchants,
@@ -78,7 +80,26 @@ const Tabs = ({
 };
 
 /* ------------------------------- Main Screen ------------------------------ */
-export default function MerchantManagementTab() {
+export default function MerchantManagementTab({ permissions = [], initialView }: { permissions?: string[]; initialView?: "bank-reviews" }) {
+  const searchParams = useSearchParams();
+  const bankReviewsOpen = initialView === "bank-reviews" || searchParams.get("view") === "bank-reviews";
+
+  return <div className="space-y-5">
+    <nav className="flex gap-1 border-b border-slate-200" aria-label="Merchant views">
+      <Link href="/dashboard/merchants" aria-current={!bankReviewsOpen ? "page" : undefined}
+        className={`border-b-2 px-3 py-2 text-sm font-medium ${bankReviewsOpen ? "border-transparent text-slate-500 hover:text-slate-800" : "border-[#071D59] text-[#071D59]"}`}>
+        Merchant directory
+      </Link>
+      <Link href="/dashboard/merchants?view=bank-reviews" aria-current={bankReviewsOpen ? "page" : undefined}
+        className={`border-b-2 px-3 py-2 text-sm font-medium ${bankReviewsOpen ? "border-[#071D59] text-[#071D59]" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+        Bank reviews
+      </Link>
+    </nav>
+    {bankReviewsOpen ? <BankReviewsTab permissions={permissions} /> : <MerchantDirectory />}
+  </div>;
+}
+
+function MerchantDirectory() {
   const router = useRouter();
   const rememberScroll = useRememberDirectoryScroll("merchants");
   const [updatesOpen, setUpdatesOpen] = React.useState(false);
