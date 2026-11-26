@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "start": "next start"
+    "start": "next start",
+    "test:contracts": "node --test src/lib/order-diagnostics.test.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
