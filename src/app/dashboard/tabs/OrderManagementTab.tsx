@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { AlertTriangle, Bike, Check, Clock3, Phone, RotateCcw, Search, Store, UserRound, X } from "lucide-react";
-import { cancelOrder, fetchOrderDetail, fetchOrders, updateOrderStatus, type UiOrder as Order } from "@/lib/orders";
+import { cancelOrder, fetchOrderDetail, fetchOrders, type UiOrder as Order } from "@/lib/orders";
 import { formatNaira, formatNigerianPhone, toUserError } from "@/lib/api";
 import { TableLoadingState } from "@/components/dashboard/ui/LoadingState";
 
 const FLOW = [
-  ["PENDING_PICKUP", "Pickup requested", "The merchant accepted and pickup dispatch can begin."],
+  ["PENDING_PICKUP", "Pickup requested", "The booking is waiting for merchant acceptance."],
   ["PICKUP_ASSIGNED", "Pickup rider offered", "A pickup rider has been offered or assigned."],
   ["PICKUP_IN_PROGRESS", "Pickup in progress", "The accepted rider is collecting the clothes."],
   ["AT_MERCHANT", "At merchant", "The merchant has custody of the clothes."],
@@ -21,15 +21,6 @@ const FLOW = [
   ["AWAITING_DELIVERY_CONFIRMATION", "Awaiting confirmation", "The customer must confirm that the clothes arrived."],
   ["COMPLETED", "Completed", "Delivery is confirmed and the journey is closed."],
 ] as const;
-
-const NEXT: Record<string, string[]> = {
-  PENDING_PICKUP: ["PICKUP_ASSIGNED"], PICKUP_ASSIGNED: ["PICKUP_IN_PROGRESS", "PENDING_PICKUP"],
-  PICKUP_IN_PROGRESS: ["AT_MERCHANT"], AT_MERCHANT: ["SORTING_AND_PRICING"], SORTING_AND_PRICING: ["AWAITING_PAYMENT"],
-  AWAITING_PAYMENT: ["IN_PROGRESS"], IN_PROGRESS: ["AWAITING_DELIVERY_LOCATION", "READY_FOR_DELIVERY"],
-  AWAITING_DELIVERY_LOCATION: ["READY_FOR_DELIVERY"], READY_FOR_DELIVERY: ["DELIVERY_ASSIGNED"],
-  DELIVERY_ASSIGNED: ["DELIVERY_IN_PROGRESS", "READY_FOR_DELIVERY"], DELIVERY_IN_PROGRESS: ["AWAITING_DELIVERY_CONFIRMATION"],
-  AWAITING_DELIVERY_CONFIRMATION: ["COMPLETED"],
-};
 
 const humanize = (value?: unknown) => String(value || "-").replaceAll("_", " ").toLowerCase().replace(/(^|\s)\S/g, (letter) => letter.toUpperCase());
 
@@ -45,7 +36,10 @@ export default function OrderManagementTab({ permissions = [] }: { permissions?:
   const [error, setError] = React.useState("");
   const [selected, setSelected] = React.useState<Order | null>(null);
   const [detailLoading, setDetailLoading] = React.useState(false);
+  const [detailError, setDetailError] = React.useState(false);
   const [version, setVersion] = React.useState(0);
+  const detailRequest = React.useRef(0);
+  const selectedId = React.useRef<string | null>(null);
   const perPage = 8;
 
   React.useEffect(() => setPage(1), [search, tab]);
@@ -60,9 +54,12 @@ export default function OrderManagementTab({ permissions = [] }: { permissions?:
   }, [tab, page, search, version]);
 
   async function openOrder(order: Order) {
-    setSelected(order); setDetailLoading(true);
-    try { setSelected(await fetchOrderDetail(order.id)); } catch { /* list row remains usable */ }
-    finally { setDetailLoading(false); }
+    const request = ++detailRequest.current;
+    selectedId.current = order.id;
+    setSelected(order); setDetailLoading(true); setDetailError(false);
+    try { const detail = await fetchOrderDetail(order.id); if (request === detailRequest.current) setSelected(detail); }
+    catch { if (request === detailRequest.current) setDetailError(true); }
+    finally { if (request === detailRequest.current) setDetailLoading(false); }
   }
 
   return <div className="px-4 py-6 sm:px-6 lg:px-8">
@@ -73,16 +70,13 @@ export default function OrderManagementTab({ permissions = [] }: { permissions?:
       <div className="p-2">{error && <p className="p-4 text-sm text-red-600">{error}</p>}{loading && <TableLoadingState rows={6} columns={6} label="Loading orders" />}{!loading && items.map((order) => <button key={order.id} onClick={() => void openOrder(order)} className="block w-full rounded-lg px-3 py-4 text-left hover:bg-gray-50 md:grid md:grid-cols-12 md:items-center md:gap-4"><div className="md:col-span-2"><p className="font-semibold text-gray-950">{order.orderNumber}</p><p className="text-xs text-gray-500">{humanize(order.raw?.status)}</p></div><p className="mt-2 text-gray-900 md:col-span-2 md:mt-0">{order.userName}</p><p className="text-gray-700 md:col-span-2">{order.washType}</p><p className="text-gray-700 md:col-span-2">{order.merchantName}</p><p className="text-gray-700 md:col-span-2">{order.state}, {order.city}</p><p className="text-gray-700 md:col-span-2">{order.requestDate}<br /><span className="text-xs text-gray-500">{order.requestTime}</span></p></button>)}{!loading && !items.length && <p className="p-8 text-center text-gray-500">{error ? "Order data is unavailable. Refresh to try again." : "No orders found."}</p>}</div>
       <div className="flex flex-col gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-gray-500">{total ? `Showing ${(page - 1) * perPage + 1} to ${Math.min(page * perPage, total)} of ${total}` : "0 entries"}</p><div className="flex gap-2"><button disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="h-9 rounded-lg border px-3 disabled:opacity-40">Previous</button><span className="grid h-9 place-items-center px-2 text-sm">{page} / {pages}</span><button disabled={page === pages} onClick={() => setPage((value) => value + 1)} className="h-9 rounded-lg border px-3 disabled:opacity-40">Next</button></div></div>
     </div>
-    {selected && <OrderModal order={selected} loading={detailLoading} canManage={granted.has("orders.manage")} canCancel={granted.has("orders.cancel")} onClose={() => setSelected(null)} onChanged={(next) => { setSelected(next); setVersion((value) => value + 1); }} />}
+    {selected && <OrderModal order={selected} loading={detailLoading} detailError={detailError} canManage={!detailLoading && !detailError && granted.has("orders.manage")} canCancel={!detailLoading && !detailError && granted.has("orders.cancel")} onClose={() => { detailRequest.current++; selectedId.current = null; setDetailLoading(false); setSelected(null); }} onChanged={(next) => { if (selectedId.current !== next.id) return; detailRequest.current++; setDetailLoading(false); setDetailError(false); setSelected(next); setVersion((value) => value + 1); }} />}
   </div>;
 }
 
-function OrderModal({ order, loading, canManage, canCancel, onClose, onChanged }: { order: Order; loading: boolean; canManage: boolean; canCancel: boolean; onClose: () => void; onChanged: (order: Order) => void }) {
+function OrderModal({ order, loading, detailError, canManage, canCancel, onClose, onChanged }: { order: Order; loading: boolean; detailError: boolean; canManage: boolean; canCancel: boolean; onClose: () => void; onChanged: (order: Order) => void }) {
   const raw = order.raw || {};
   const status = String(raw.status || "").toUpperCase();
-  const nextStatuses = NEXT[status] || [];
-  const [nextStatus, setNextStatus] = React.useState(nextStatuses[0] || "");
-  const [note, setNote] = React.useState("");
   const [cancelReason, setCancelReason] = React.useState("");
   const [showCancel, setShowCancel] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -90,33 +84,42 @@ function OrderModal({ order, loading, canManage, canCancel, onClose, onChanged }
   const [shownEvents, setShownEvents] = React.useState(3);
   const [shownItems, setShownItems] = React.useState(6);
   const returnOrder = raw.journeyPurpose === "CANCELLATION_RETURN" || Boolean(raw.cancellationRequestedAt);
-  const cancellationAllowed = canCancel && !raw.cancellationRequestedAt && ["PENDING_PICKUP", "PICKUP_ASSIGNED", "PICKUP_IN_PROGRESS", "AT_MERCHANT", "SORTING_AND_PRICING", "AWAITING_PAYMENT"].includes(status);
+  const cancellationAllowed = canCancel && !raw.cancellationRequestedAt && !raw.paidAt && raw.paymentStatus !== "PAID" && ["PENDING_PICKUP", "PICKUP_ASSIGNED", "PICKUP_IN_PROGRESS", "AT_MERCHANT", "SORTING_AND_PRICING", "AWAITING_PAYMENT"].includes(status);
 
-  React.useEffect(() => { setNextStatus((NEXT[status] || [])[0] || ""); setNote(""); setActionError(""); }, [status]);
+  React.useEffect(() => { setActionError(""); }, [order.id]);
   React.useEffect(() => { setShownEvents(3); setShownItems(6); }, [order.id]);
   React.useEffect(() => { const listener = (event: KeyboardEvent) => event.key === "Escape" && onClose(); window.addEventListener("keydown", listener); return () => window.removeEventListener("keydown", listener); }, [onClose]);
   const refresh = async () => onChanged(await fetchOrderDetail(order.id));
-
-  async function advance() {
-    if (!nextStatus || !note.trim()) { setActionError("Select the next stage and add an audit note."); return; }
+  async function refreshNow() {
     setSaving(true); setActionError("");
-    try { await updateOrderStatus(order.id, nextStatus, note.trim()); await refresh(); }
-    catch (error: any) { setActionError(toUserError(error, "Unable to update the order.")); }
+    try { await refresh(); }
+    catch (error: any) { setActionError(toUserError(error, "Unable to refresh this order.")); }
     finally { setSaving(false); }
   }
   async function cancel() {
     if (!cancelReason.trim()) { setActionError("Enter a customer-facing cancellation reason."); return; }
     setSaving(true); setActionError("");
-    try { await cancelOrder(order.id, cancelReason.trim()); await refresh(); setShowCancel(false); }
-    catch (error: any) { setActionError(toUserError(error, "Unable to cancel the order.")); }
+    try { await cancelOrder(order.id, cancelReason.trim()); }
+    catch (error: any) {
+      const message = toUserError(error, "Unable to cancel the order. Check its current status before retrying.");
+      try { await refresh(); } catch { /* preserve the last confirmed detail */ }
+      setActionError(message);
+      setSaving(false);
+      return;
+    }
+    setShowCancel(false);
+    try { await refresh(); }
+    catch { setActionError("Cancellation was accepted. The latest order details could not load; reopen this order to check its status."); }
     finally { setSaving(false); }
   }
 
   return <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-2 sm:p-4" role="dialog" aria-modal="true" aria-label={`Order ${order.orderNumber}`}>
     <div className="flex max-h-[96dvh] w-full max-w-[1040px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
       <header className="flex shrink-0 items-start justify-between gap-4 border-b px-5 py-4 sm:px-7"><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-bold text-slate-950">Order {order.orderNumber}</h2><Status status={status} /></div><p className="mt-1 text-sm text-gray-500">Requested {order.requestDate} at {order.requestTime}</p></div><button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg border" aria-label="Close"><X className="h-5 w-5" /></button></header>
+      <div className="flex justify-end border-b px-5 py-2 sm:px-7"><button type="button" disabled={saving || loading} onClick={() => void refreshNow()} className="text-sm font-semibold text-[#071D59] disabled:opacity-50">Refresh order</button></div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7">
         {loading && <p className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">Refreshing full order details…</p>}
+        {detailError && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Full order details could not load. Refresh the order before taking an action.</p>}
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-slate-500">Current stage</p><p className="mt-1 text-sm font-semibold">{humanize(status)}</p></div>
           <div className="rounded-lg border border-slate-200 p-3"><p className="text-xs text-slate-500">{raw.paidAt ? "Paid total" : Number(raw.serviceAmount || 0) > 0 ? "Quoted total" : "Booking estimate"}</p><p className="mt-1 text-sm font-semibold">{formatNaira(raw.totalAmount)}</p></div>
@@ -141,7 +144,7 @@ function OrderModal({ order, loading, canManage, canCancel, onClose, onChanged }
         <details className="mt-5 rounded-lg border border-slate-200 p-4"><summary className="cursor-pointer text-sm font-semibold text-[#071D59]">Full order journey</summary><Journey status={status} /></details>
         <section className="mt-7"><h3 className="text-sm font-semibold text-slate-950">Amount breakdown</h3><div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"><Money label="Service charge" value={raw.serviceAmount} /><Money label="Logistics charge" value={raw.logisticsFee} />{Number(raw.deliverySpeedFee || 0) > 0 && <Money label="Speed fee" value={raw.deliverySpeedFee} />}{raw.merchantPayoutAmount != null && <Money label="Merchant payout" value={raw.merchantPayoutAmount} />}{raw.riderPayoutAmount != null && <Money label="Rider payout" value={raw.riderPayoutAmount} />}{raw.platformRevenueAmount != null && <Money label="Platform revenue" value={raw.platformRevenueAmount} />}</div>{order.transactionId && <p className="mt-3 break-all text-xs text-slate-600">Payment reference: {order.transactionId}</p>}</section>
 
-        {(canManage || cancellationAllowed) && <section className="mt-7 rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 sm:p-5"><h3 className="font-semibold text-indigo-950">Manual admin controls</h3><p className="mt-1 text-sm text-indigo-800">Only backend-approved next stages are available. Status changes are written to the activity log.</p>{canManage && nextStatuses.length > 0 && <div className="mt-4 grid gap-3 sm:grid-cols-[220px_1fr_auto]"><select value={nextStatus} onChange={(event) => setNextStatus(event.target.value)} className="h-11 rounded-lg border bg-white px-3 text-sm">{nextStatuses.map((next) => <option key={next} value={next}>{humanize(next)}</option>)}</select><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Required audit note" className="h-11 rounded-lg border bg-white px-3 text-sm" /><button disabled={saving} onClick={() => void advance()} className="h-11 rounded-lg bg-indigo-700 px-4 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Update stage"}</button></div>}{canManage && !nextStatuses.length && !["COMPLETED", "CANCELLED"].includes(status) && <p className="mt-3 text-sm text-amber-700">This stage must be completed through its dedicated payment, return, or dispatch workflow.</p>}{cancellationAllowed && !showCancel && <button onClick={() => setShowCancel(true)} className="mt-4 text-sm font-semibold text-red-700">Cancel on behalf of customer</button>}{showCancel && <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4"><textarea value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} placeholder="Customer-facing cancellation reason" className="min-h-24 w-full rounded-lg border bg-white p-3 text-sm" /><div className="mt-3 flex justify-end gap-2"><button onClick={() => setShowCancel(false)} className="px-4 py-2 text-sm font-semibold">Keep order</button><button disabled={saving} onClick={() => void cancel()} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white">Confirm cancellation</button></div></div>}{actionError && <p className="mt-3 flex items-center gap-2 text-sm font-medium text-red-700"><AlertTriangle className="h-4 w-4" />{actionError}</p>}</section>}
+        {(canManage || cancellationAllowed || actionError) && <section className="mt-7 rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 sm:p-5"><h3 className="font-semibold text-indigo-950">Order operations</h3>{canManage && !["COMPLETED", "CANCELLED"].includes(status) && <p className="mt-1 text-sm text-indigo-800">Payment, custody and delivery stages must be completed in their dedicated workflows. Refresh the order after an operational change.</p>}{cancellationAllowed && !showCancel && <button onClick={() => setShowCancel(true)} className="mt-4 text-sm font-semibold text-red-700">Cancel on behalf of customer</button>}{showCancel && <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4"><textarea value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} placeholder="Customer-facing cancellation reason" className="min-h-24 w-full rounded-lg border bg-white p-3 text-sm" /><div className="mt-3 flex justify-end gap-2"><button onClick={() => setShowCancel(false)} className="px-4 py-2 text-sm font-semibold">Keep order</button><button disabled={saving} onClick={() => void cancel()} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white">Confirm cancellation</button></div></div>}{actionError && <p className="mt-3 flex items-center gap-2 text-sm font-medium text-red-700"><AlertTriangle className="h-4 w-4" />{actionError}</p>}</section>}
       </div>
     </div>
   </div>;

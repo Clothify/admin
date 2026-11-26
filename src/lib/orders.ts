@@ -114,13 +114,6 @@ export async function fetchOrderDetail(id: string) {
   return mapBackendOrder(await apiFetch<any>(`/admin/orders/${id}`));
 }
 
-export async function updateOrderStatus(id: string, status: string, note?: string) {
-  return apiFetch(`/admin/orders/${id}/status`, {
-    method: "PATCH",
-    body: JSON.stringify({ status, note }),
-  });
-}
-
 export async function cancelOrder(id: string, reason?: string) {
   return apiFetch(`/admin/orders/${id}/cancel`, {
     method: "POST",
