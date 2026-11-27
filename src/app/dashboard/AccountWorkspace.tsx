@@ -79,7 +79,7 @@ type MerchantProfile = Partner & {
   isExclusiveCapable: boolean;
   description: string | null;
   orders: { today: number; thisWeek: number };
-  prices: { id: string; clothTypeId: string; clothType: { displayName: string }; serviceType: string; pricePerUnit: number }[];
+  prices: { id: string; clothTypeId: string; clothType: { displayName: string; section?: string; size?: string | null }; serviceType: string; variant?: string; pricePerUnit: number }[];
   reviews: { id: string; createdAt: string; rating: number; comment: string | null; user: { fullName: string } | null }[];
 };
 type RiderProfile = Partner & {
@@ -147,9 +147,13 @@ function MerchantPricing({ prices }: { prices: MerchantProfile["prices"] }) {
   const [service, setService] = useState("");
   const [page, setPage] = useState(1);
   const services = [...new Set(prices.map(price => price.serviceType))].sort();
-  const types = [...new Map(prices.map(price => [price.clothTypeId, { id: price.clothTypeId, name: price.clothType.displayName }])).values()]
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const matching = types.filter(type => type.name.toLowerCase().includes(search.trim().toLowerCase()) &&
+  const types = [...new Map(prices.map(price => [price.clothTypeId, {
+    id: price.clothTypeId,
+    name: price.clothType.displayName,
+    section: price.clothType.section || "Other",
+    size: price.clothType.size,
+  }])).values()].sort((a, b) => a.section.localeCompare(b.section) || a.name.localeCompare(b.name) || (a.size || "").localeCompare(b.size || ""));
+  const matching = types.filter(type => `${type.name} ${type.section} ${type.size || ""}`.toLowerCase().includes(search.trim().toLowerCase()) &&
     (!service || prices.some(price => price.clothTypeId === type.id && price.serviceType === service)));
   const pageSize = 20;
   const pageCount = Math.max(1, Math.ceil(matching.length / pageSize));
@@ -166,10 +170,10 @@ function MerchantPricing({ prices }: { prices: MerchantProfile["prices"] }) {
     </div>
     <div className="mt-4 overflow-x-auto rounded-lg border border-slate-200">
       <table className="w-full min-w-[640px] text-left text-sm">
-        <thead className="bg-slate-50 text-xs text-slate-600"><tr><th className="px-4 py-3">Cloth type</th>{services.filter(item => !service || item === service).map(item => <th key={item} className="px-4 py-3">{label(item)}</th>)}</tr></thead>
-        <tbody className="divide-y divide-slate-100">{visible.map(type => <tr key={type.id}><th scope="row" className="px-4 py-3 font-medium text-slate-900">{type.name}</th>{services.filter(item => !service || item === service).map(item => {
-          const price = prices.find(entry => entry.clothTypeId === type.id && entry.serviceType === item);
-          return <td key={item} className="px-4 py-3 text-slate-700">{price ? formatNaira(price.pricePerUnit) : "Unavailable"}</td>;
+        <thead className="bg-slate-50 text-xs text-slate-600"><tr><th className="px-4 py-3">Item</th>{services.filter(item => !service || item === service).map(item => <th key={item} className="px-4 py-3">{label(item)}</th>)}</tr></thead>
+        <tbody className="divide-y divide-slate-100">{visible.map(type => <tr key={type.id}><th scope="row" className="px-4 py-3 font-medium text-slate-900"><span className="block">{type.name}</span><span className="block text-xs font-normal text-slate-500">{[type.section, type.size].filter(Boolean).join(" · ")}</span></th>{services.filter(item => !service || item === service).map(item => {
+          const variants = prices.filter(entry => entry.clothTypeId === type.id && entry.serviceType === item);
+          return <td key={item} className="px-4 py-3 text-slate-700">{variants.length ? variants.map(price => <div key={price.id}>{price.variant && price.variant !== "REGULAR" ? `${label(price.variant)}: ` : ""}{formatNaira(price.pricePerUnit)}</div>) : "Unavailable"}</td>;
         })}</tr>)}</tbody>
       </table>
       {!visible.length && <p className="px-4 py-8 text-center text-sm text-slate-600">No prices match these filters.</p>}
