@@ -155,7 +155,7 @@ export default function MerchantDocumentsModal({
 
           <div className="mt-5 max-h-[55vh] overflow-y-auto space-y-4">
             {[
-              ...imageSlots.map(([type, label]) => ({
+              ...(named ? imageSlots : []).map(([type, label]) => ({
                 label,
                 doc: docs.find((d) => d.type === type),
               })),
@@ -166,7 +166,7 @@ export default function MerchantDocumentsModal({
                     !imageSlots.some(([type]) => type === d.type) &&
                     d.type !== "MERCHANT_CAC",
                 )
-                .map((doc) => ({ label: `Legacy: ${doc.type}`, doc })),
+                .map((doc) => ({ label: doc.type === "MERCHANT_COVER_IMAGE" ? "Legacy cover photo" : doc.type === "MERCHANT_STORE_IMAGE" ? "Legacy store photo" : `Legacy: ${doc.type}`, doc })),
             ].map(({ label, doc }) => (
               <div key={doc?.id || label} className="border-b pb-4">
                 <div className="font-semibold text-gray-900">{label}</div>
