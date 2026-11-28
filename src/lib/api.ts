@@ -131,6 +131,8 @@ function safeMessage(status: number, code: string) {
   if (code === "OTP_INCORRECT") return "That code is incorrect. Check it and try again.";
   if (code === "OTP_EXPIRED") return "This code has expired. Request a new code.";
   if (code === "WITHDRAWAL_STATE_CONFLICT") return "This withdrawal has changed. Refresh its status.";
+  if (code === "MERCHANT_ONBOARDING_NOT_SUBMITTED") return "The merchant must finish and submit onboarding before approval.";
+  if (code === "MERCHANT_DOCUMENTS_NOT_APPROVED") return "Review and approve the CAC document and all required business images first.";
   if (status === 400 || status === 422) return "Check the information entered and try again.";
   return "Couldn't complete the request. Please try again.";
 }

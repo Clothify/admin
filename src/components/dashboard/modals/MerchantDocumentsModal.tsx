@@ -19,12 +19,20 @@ export default function MerchantDocumentsModal({
   open,
   onClose,
   merchant,
+  loading = false,
+  loadError,
+  canReview = false,
+  canApprove = false,
   onApprove,
   onReject,
 }: {
   open: boolean;
   onClose: () => void;
   merchant?: Merchant;
+  loading?: boolean;
+  loadError?: string | null;
+  canReview?: boolean;
+  canApprove?: boolean;
   onApprove: () => void;
   onReject: () => void;
 }) {
@@ -153,7 +161,9 @@ export default function MerchantDocumentsModal({
             </div>
           </div>
 
-          <div className="mt-5 max-h-[55vh] overflow-y-auto space-y-4">
+          {loading ? <p className="mt-5 text-sm text-gray-600">Loading documents…</p> : null}
+          {loadError ? <p role="alert" className="mt-5 text-sm text-red-700">{loadError}</p> : null}
+          {!loading && !loadError && <div className="mt-5 max-h-[55vh] overflow-y-auto space-y-4">
             {[
               ...(named ? imageSlots : []).map(([type, label]) => ({
                 label,
@@ -209,7 +219,7 @@ export default function MerchantDocumentsModal({
                         }
                       />
                     </label>
-                    <div className="flex gap-3 mt-3">
+                    {canReview && <div className="flex gap-3 mt-3">
                       <button
                         disabled={!!busy}
                         onClick={() => review(doc.id, "APPROVED")}
@@ -224,7 +234,7 @@ export default function MerchantDocumentsModal({
                       >
                         Reject file
                       </button>
-                    </div>
+                    </div>}
                   </>
                 ) : (
                   <p className="text-sm text-gray-500 mt-2">
@@ -233,22 +243,24 @@ export default function MerchantDocumentsModal({
                 )}
               </div>
             ))}
-          </div>
+          </div>}
           {error ? (
             <p role="alert" className="mt-3 text-sm text-red-700">
               {error}
             </p>
           ) : null}
-          {!complete ? (
+          {!merchant.onboardingSubmittedAt ? (
+            <p className="mt-3 text-sm text-gray-600">The merchant has not submitted onboarding yet.</p>
+          ) : !complete ? (
             <p className="mt-3 text-sm text-gray-600">
               Review and approve all required documents before approving this
               merchant. Legacy files retain their original labels.
             </p>
           ) : null}
 
-          <div className="mt-6 flex flex-col gap-3">
+          {canApprove && <div className="mt-6 flex flex-col gap-3">
             <button
-              disabled={!complete || !!busy}
+              disabled={!canApprove || !merchant.onboardingSubmittedAt || !complete || !!busy || loading || !!loadError}
               onClick={() => {
                 onApprove();
                 onClose();
@@ -258,6 +270,7 @@ export default function MerchantDocumentsModal({
               Approve
             </button>
             <button
+              disabled={!merchant.onboardingSubmittedAt || loading || !!loadError || !!busy}
               onClick={() => {
                 onReject();
                 onClose();
@@ -266,7 +279,7 @@ export default function MerchantDocumentsModal({
             >
               Reject
             </button>
-          </div>
+          </div>}
         </div>
       </ModalBase>
 

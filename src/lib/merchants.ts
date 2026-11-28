@@ -21,6 +21,7 @@ export type Merchant = {
   lastLoginDate: string;
   serviceTier: "Basic" | "Standard" | "Premium" | "Exclusive" | string;
   status: MerchantStatus;
+  onboardingSubmittedAt?: string | null;
   city?: string;
   documents?: MerchantDocument[];
   earnings?: any;
@@ -68,6 +69,7 @@ export function mapBackendMerchant(m: any): Merchant {
     lastLoginDate: formatDate(m.account?.lastLoginAt || m.lastLoginAt || m.updatedAt),
     serviceTier: serviceTier(m.planCategory || m.serviceTier),
     status: fromBackendStatus(m.status),
+    onboardingSubmittedAt: m.onboardingSubmittedAt,
     city: m.city || m.state,
     documents: m.documents,
     earnings: m.earnings,

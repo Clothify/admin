@@ -16,8 +16,8 @@ export default function MerchantBulkActions({
   disabled: boolean;           // true when no rows selected
   onSuspend: () => void;
   onActivate: () => void;
-  onApprove: () => void;
-  onReject: () => void;
+  onApprove?: () => void;
+  onReject?: () => void;
 }) {
     const Btn = ({
         title,
@@ -52,8 +52,7 @@ export default function MerchantBulkActions({
         </Btn>
       )}
 
-      {/* pending → Approve + Reject */}
-      {tab === "pending" && (
+      {tab === "pending" && onApprove && onReject && (
         <>
           <Btn title="Approve selected" onClick={onApprove} className="bg-emerald-50 border-emerald-200">
             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -64,8 +63,7 @@ export default function MerchantBulkActions({
         </>
       )}
 
-      {/* rejected → Approve */}
-      {tab === "rejected" && (
+      {tab === "rejected" && onApprove && (
         <Btn title="Approve selected" onClick={onApprove} className="bg-emerald-50 border-emerald-200">
           <CheckCircle2 className="h-5 w-5 text-emerald-600" />
         </Btn>

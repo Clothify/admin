@@ -13,8 +13,10 @@ export default function MerchantRowMenu({
   onViewDocs,
   onSuspend,
   onActivate,
-  onApprove,
   onReject,
+  submitted,
+  canManage,
+  canReview,
 }: {
   open: boolean;
   anchor: { top: number; left: number } | null;
@@ -26,8 +28,10 @@ export default function MerchantRowMenu({
   onViewDocs: () => void;
   onSuspend: () => void;
   onActivate: () => void;
-  onApprove: () => void;
   onReject: () => void;
+  submitted: boolean;
+  canManage: boolean;
+  canReview: boolean;
 }) {
   if (!open || !anchor) return null;
 
@@ -62,7 +66,7 @@ export default function MerchantRowMenu({
           <>
             <Row onClick={onViewProfile}>View profile</Row>
             <Row onClick={onUpgrade}>Upgrade merchant</Row>
-            <Row danger onClick={onSuspend}>Suspend Merchant</Row>
+            {canManage && <Row danger onClick={onSuspend}>Suspend merchant</Row>}
           </>
         );
       case "suspended":
@@ -70,24 +74,22 @@ export default function MerchantRowMenu({
           <>
             <Row onClick={onViewProfile}>View profile</Row>
             <Row onClick={onUpgrade}>Upgrade merchant</Row>
-            <Row danger onClick={onActivate}>Activate merchant</Row>
+            {canManage && <Row onClick={onActivate}>Reactivate merchant</Row>}
           </>
         );
       case "pending":
         return (
           <>
-            <Row onClick={onViewDocs}>View Docs</Row>
-            <Row onClick={onApprove}>Approve merchant</Row>
-            {/* per your latest instruction: last is Activate */}
-            <Row danger onClick={onActivate}>Activate merchant</Row>
+            <Row onClick={onViewProfile}>View profile</Row>
+            <Row onClick={onViewDocs}>{canReview ? "Review documents" : "View documents"}</Row>
+            {submitted && canManage && <Row danger onClick={onReject}>Reject merchant</Row>}
           </>
         );
       case "rejected":
         return (
           <>
             <Row onClick={onViewProfile}>View profile</Row>
-            <Row onClick={onViewDocs}>View Docs</Row>
-            <Row danger onClick={onApprove}>Approve merchant</Row>
+            <Row onClick={onViewDocs}>{canReview ? "Review documents" : "View documents"}</Row>
           </>
         );
     }

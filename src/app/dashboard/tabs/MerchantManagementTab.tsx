@@ -30,7 +30,6 @@ import {
   fetchMerchants,
   countMerchants,
   setMerchantStatus,
-  reviewMerchantDocument,
   fetchMerchantDetail,
   Merchant,
   MerchantStatus,
@@ -95,12 +94,14 @@ export default function MerchantManagementTab({ permissions = [], initialView }:
         Bank reviews
       </Link>
     </nav>
-    {bankReviewsOpen ? <BankReviewsTab permissions={permissions} /> : <MerchantDirectory />}
+    {bankReviewsOpen ? <BankReviewsTab permissions={permissions} /> : <MerchantDirectory permissions={permissions} />}
   </div>;
 }
 
-function MerchantDirectory() {
+function MerchantDirectory({ permissions }: { permissions: string[] }) {
   const router = useRouter();
+  const canManage = permissions.includes("merchants.manage");
+  const canReview = permissions.includes("merchants.review");
   const rememberScroll = useRememberDirectoryScroll("merchants");
   const [updatesOpen, setUpdatesOpen] = React.useState(false);
   /* ---------- query state ---------- */
@@ -137,6 +138,8 @@ function MerchantDirectory() {
 
   /* ---------- modals ---------- */
   const [docsOpen, setDocsOpen] = React.useState(false);
+  const [docsLoading, setDocsLoading] = React.useState(false);
+  const [docsError, setDocsError] = React.useState<string | null>(null);
   const [current, setCurrent] = React.useState<Merchant | null>(null);
 
   const [confirmOpen, setConfirmOpen] = React.useState(false);
@@ -200,7 +203,10 @@ function MerchantDirectory() {
 
   /* ---------- helpers ---------- */
   const openConfirm = (kind: typeof confirmKind, m?: Merchant | null) => {
-    if (m) setCurrent(m);
+    if (m) {
+      setCurrent(m);
+      setSelected([]);
+    }
     setConfirmKind(kind);
     setConfirmOpen(true);
   };
@@ -215,11 +221,15 @@ function MerchantDirectory() {
   const openDocuments = async (m: Merchant) => {
     setCurrent(m);
     setDocsOpen(true);
+    setDocsLoading(true);
+    setDocsError(null);
     try {
       const detailed = await fetchMerchantDetail(m.id);
       setCurrent(current => current?.id === m.id ? detailed : current);
-    } catch {
-      // keep row data if detail fetch fails
+    } catch (err) {
+      setDocsError(toUserError(err, "Could not load the merchant documents. Try again."));
+    } finally {
+      setDocsLoading(false);
     }
   };
 
@@ -233,10 +243,6 @@ function MerchantDirectory() {
 
     try {
       await Promise.all(ids.map((id) => setMerchantStatus(id, next)));
-      if (current && ids.length === 1 && (confirmKind === "approve" || confirmKind === "reject")) {
-        const docStatus = confirmKind === "approve" ? "VERIFIED" : "REJECTED";
-        await Promise.all((current.documents || []).filter((d) => d.status === "PENDING").map((d) => reviewMerchantDocument(d.id, docStatus)));
-      }
       afterConfirmCloseAll();
       setVersion((v) => v + 1);
     } catch (err: any) {
@@ -257,7 +263,7 @@ function MerchantDirectory() {
       {updatesOpen && <MerchantProfileUpdatesPanel />}
       {/* Tabs header */}
       <div className="mb-4">
-        <Tabs active={tab} onChange={(tab) => updateDirectory({ tab, page: 1 })} counts={counts} />
+        <Tabs active={tab} onChange={(tab) => { setSelected([]); updateDirectory({ tab, page: 1 }); }} counts={counts} />
       </div>
 
       {/* Search row with filter + icon-only bulk actions */}
@@ -282,14 +288,12 @@ function MerchantDirectory() {
         </div>
 
         {/* Icon-only bulk actions conditioned by tab */}
-        <MerchantBulkActions
+        {canManage && <MerchantBulkActions
           tab={tab}
           disabled={!hasSelection}
           onSuspend={() => openConfirm("suspend")}
           onActivate={() => openConfirm("activate")}
-          onApprove={() => openConfirm("approve")}
-          onReject={() => openConfirm("reject")}
-        />
+        />}
       </div>
 
       {/* Card with table */}
@@ -359,6 +363,7 @@ function MerchantDirectory() {
 
                   <td className="px-3 py-3 text-sm font-medium text-gray-900">
                     <CopyableCell value={m.businessName} label="business name" />
+                    {m.status === "pending" && <span className="mt-1 block text-xs font-normal text-gray-500">{m.onboardingSubmittedAt ? "Awaiting review" : "Setup in progress"}</span>}
                   </td>
                   <td className="px-3 py-3 text-sm text-gray-700">
                     <CopyableCell value={formatNigerianPhone(m.phoneNumber)} label="phone number" truncate={false} />
@@ -425,6 +430,9 @@ function MerchantDirectory() {
         open={menuOpen}
         anchor={menuCoords}
         status={(menuMerchant?.status ?? "verified") as MerchantStatus}
+        submitted={!!menuMerchant?.onboardingSubmittedAt}
+        canManage={canManage}
+        canReview={canReview}
         onClose={() => setMenuOpen(false)}
         onViewProfile={() => {
           if (!menuMerchant) return;
@@ -439,7 +447,6 @@ function MerchantDirectory() {
         }}
         onSuspend={() => openConfirm("suspend", menuMerchant!)}
         onActivate={() => openConfirm("activate", menuMerchant!)}
-        onApprove={() => openConfirm("approve", menuMerchant!)}
         onReject={() => openConfirm("reject", menuMerchant!)}
       />
 
@@ -448,6 +455,10 @@ function MerchantDirectory() {
         open={docsOpen && !!current}
         onClose={() => setDocsOpen(false)}
         merchant={current ?? undefined}
+        canReview={canReview}
+        canApprove={canManage && canReview}
+        loading={docsLoading}
+        loadError={docsError}
         onApprove={() => openConfirm("approve", current!)}
         onReject={() => openConfirm("reject", current!)}
       />
