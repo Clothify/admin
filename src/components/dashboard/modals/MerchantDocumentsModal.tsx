@@ -69,8 +69,9 @@ export default function MerchantDocumentsModal({
         .length >= 4 &&
       docs.some((d) => d.type === "MERCHANT_COVER_IMAGE" && isApproved(d));
   const review = async (id: string, status: "APPROVED" | "REJECTED") => {
-    if (id === primaryDoc?.id && status === "APPROVED" && !cacRegisteredName.trim()) {
-      setError("Enter the registered name exactly as shown on the CAC document.");
+    if (id === primaryDoc?.id && status === "APPROVED" &&
+      (cacRegisteredName.trim().length < 3 || cacRegisteredName.trim().length > 160)) {
+      setError("Enter the registered name shown on the CAC document (3–160 characters).");
       return;
     }
     if (status === "REJECTED" && !reason[id]?.trim()) {
